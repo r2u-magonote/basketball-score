@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="バスケスコア">
+<link rel="manifest" href='data:application/manifest+json,{"name":"バスケットスコア","short_name":"バスケ","start_url":".","display":"standalone","background_color":"#f0ece0","theme_color":"#111"}'>
+<title>バスケスコア</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#f0ece0;font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;max-width:640px;margin:0 auto;min-height:100vh}
+button{font-family:inherit;cursor:pointer;border:none}
+input{font-family:inherit}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#bbb;border-radius:2px}
+
+/* ── ホーム ── */
+#home-view{padding-bottom:30px}
+#home-header{background:#111;color:#fff;padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between}
+#home-title{font-size:20px;font-weight:700}
+#home-sub{font-size:11px;color:#888;margin-top:2px}
+#new-game-btn{padding:10px 18px;background:#e8a020;border-radius:8px;color:#fff;font-weight:700;font-size:14px}
+#game-list{padding:12px}
+.gl-empty{text-align:center;color:#aaa;padding:40px 0;font-size:14px}
+.game-card{background:#fff;border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.gc-body{padding:12px 14px;cursor:pointer}
+.gc-body:active{background:#f9f9f9}
+.gc-date{font-size:11px;color:#aaa;margin-bottom:4px}
+.gc-teams{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.gc-team{font-size:13px;font-weight:700;color:#333;flex:1}
+.gc-team:last-child{text-align:right}
+.gc-score{font-family:monospace;font-size:24px;font-weight:700;color:#111}
+.gc-sep{color:#bbb}
+.gc-info{font-size:11px;color:#888}
+.gc-status{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-left:6px}
+.gc-status.active{background:#e8f5e9;color:#27ae60}
+.gc-status.done{background:#f5f5f5;color:#999}
+.gc-footer{display:flex;border-top:1px solid #f0f0f0}
+.gc-open{flex:1;padding:10px;background:none;color:#1a5fb4;font-size:13px;font-weight:700;border-right:1px solid #f0f0f0}
+.gc-del{padding:10px 18px;background:none;color:#e74c3c;font-size:13px;font-weight:700}
+
+/* ── ゲーム画面 ── */
+#game-view{display:none}
+#gnav{background:#111;color:#fff;padding:8px 12px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:30}
+#back-btn{padding:5px 10px;background:none;color:#e8a020;font-size:13px;font-weight:700;border:1px solid #e8a020;border-radius:6px}
+#gnav-title{font-size:12px;color:#888;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#end-btn{padding:5px 10px;background:#27ae60;border-radius:6px;color:#fff;font-size:11px;font-weight:700}
+
+#gtabs{display:flex;background:#1a1a1a}
+.gtab{flex:1;padding:10px 2px;background:none;color:#666;font-size:11px;font-weight:700;border-bottom:3px solid transparent}
+.gtab.on{color:#fff;border-bottom-color:#e8a020}
+
+/* スコアヘッダー */
+#shdr{background:#111;color:#fff;padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.thdr{flex:1;text-align:center}
+.tlbl{font-size:10px;letter-spacing:1px;margin-bottom:2px;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;margin:0 auto 2px}
+.tsc{font-family:monospace;font-size:46px;font-weight:700;line-height:1;color:#fff}
+#difflbl{font-size:11px;color:#e8a020;min-height:14px;text-align:center}
+#qinfo{font-size:10px;color:#666;text-align:center;margin-top:2px}
+
+/* ランニングスコア */
+#rsc{margin:8px;background:#fff;border:1px solid #999;border-radius:3px;overflow:hidden}
+#rsh{background:#1a1a1a;color:#fff;padding:4px 10px;font-size:11px;font-weight:700;letter-spacing:2px}
+.ghdrs{display:flex;border-bottom:1px solid #999}
+.ghdr{flex:1;display:flex;border-right:2px solid #666}.ghdr:last-child{border-right:none}
+.ghsp{width:22px;flex-shrink:0}
+.ghW{flex:1;text-align:center;padding:3px 0;font-size:10px;font-weight:700;background:#eee;border-right:1px solid #ccc}
+.ghB{flex:1;text-align:center;padding:3px 0;font-size:10px;font-weight:700;background:#1a1a1a;color:#fff}
+#gscroll{display:flex;max-height:24vh;overflow-y:auto}
+.gcol{flex:1;border-right:2px solid #666}.gcol:last-child{border-right:none}
+.grow{display:flex;align-items:center;height:17px;border-bottom:1px solid #eee}
+.gnum{width:22px;text-align:right;padding-right:2px;font-size:9px;font-family:monospace;flex-shrink:0;color:#ccc}
+.gnum.hl{color:#e8a020;font-weight:700}
+.gc{flex:1;height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:monospace}
+.gcW{background:#f5f5f5;border-right:1px solid #ddd;color:#111}
+.gcW.sc{background:#fff;font-weight:700}.gcW.cur{background:#e8a020!important;color:#fff;font-weight:700}
+.gcB{background:#d8d8d8;color:#aaa}
+.gcB.sc{background:#1a1a1a;color:#fff;font-weight:700}.gcB.cur{background:#e8a020!important;color:#fff;font-weight:700}
+
+/* 得点ボタン */
+#score-tab{padding:8px 10px}
+.tib{margin-bottom:8px}
+.til{font-size:12px;font-weight:700;letter-spacing:2px;margin-bottom:6px}
+.pbtns{display:flex;gap:6px}
+.pbtn{flex:1;padding:14px 0;border-radius:10px;font-size:26px;font-weight:700;font-family:monospace;transition:transform .1s}
+.pbtn.w{background:#fff;border:2px solid #bbb;color:#222}
+.pbtn.b{background:#111;border:2px solid #333;color:#fff}
+.pbtn:active{transform:scale(.93)}
+#undo-pdf-row{display:flex;gap:6px;margin-top:6px}
+#ubtn{flex:2;padding:9px;background:#fff;border:2px solid #ccc;border-radius:8px;color:#333;font-weight:700;font-size:12px}
+#ubtn:disabled{background:#f0f0f0;color:#bbb}
+#pdf-btn{flex:1;padding:9px;background:#1a5fb4;border-radius:8px;color:#fff;font-weight:700;font-size:12px}
+#q-row{display:flex;align-items:center;gap:6px;margin-top:6px;padding:6px 0;border-top:1px solid #ddd}
+#q-lbl{font-size:12px;font-weight:700;color:#555;min-width:24px}
+#q-end-btn{padding:5px 12px;background:#555;border-radius:6px;color:#fff;font-size:11px;font-weight:700}
+#q-disp{font-size:10px;color:#888;flex:1;text-align:right}
+
+/* 選手スコア */
+#player-stats{padding:4px 10px 8px;display:flex;gap:8px}
+.ptwrap{flex:1;background:#fff;border:1px solid #bbb;border-radius:4px;overflow:hidden}
+.ptwrap.bk{background:#111;border-color:#333}
+.pthdr{padding:5px 8px;font-size:11px;font-weight:700;display:flex;justify-content:space-between;border-bottom:1px solid #ddd}
+.ptwrap.bk .pthdr{background:#000;color:#fff;border-color:#222}
+.ptbl{width:100%;border-collapse:collapse}
+.ptbl th{padding:3px 4px;font-size:10px;text-align:center;font-weight:400;color:#999;border-bottom:1px solid #eee}
+.ptwrap.bk .ptbl th{color:#444;border-color:#222}
+.ptr td{padding:4px 5px;text-align:center;font-family:monospace;font-size:13px;border-bottom:1px solid #f5f5f5}
+.ptwrap.bk .ptr td{color:#fff;border-color:#1e1e1e}
+.fy{color:#e8a020!important}.fr{color:#e74c3c!important}
+.emsg{padding:10px 4px;font-size:11px;text-align:center;color:#ccc}
+.ptwrap.bk .emsg{color:#444}
+
+/* 選手登録タブ */
+#roster-tab{display:none;padding:0 10px 30px}
+#api-section{background:#fff;border:1px solid #ddd;border-radius:10px;margin:12px 0;overflow:hidden}
+#api-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer}
+#api-status{font-size:11px;font-weight:700}
+#api-body{padding:12px 14px;border-top:1px solid #eee;display:none}
+.api-note{font-size:11px;color:#888;line-height:1.6;margin-bottom:10px}
+.api-note a{color:#0066cc}
+#api-key-input{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:13px;font-family:monospace;margin-bottom:8px;background:#fafafa}
+.api-save-btn{width:100%;padding:10px;background:#333;color:#fff;border-radius:8px;font-weight:700;font-size:14px}
+.api-clear-btn{width:100%;margin-top:6px;padding:8px;background:none;border:1px solid #ccc;border-radius:8px;color:#aaa;font-size:12px}
+.rtsec{margin:14px 0}
+.rthdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.rttitle{font-size:12px;font-weight:700;letter-spacing:2px}
+.rttitle.wt{color:#333}.rttitle.bk{color:#111}
+.rtbtns{display:flex;gap:5px}
+.imgbtn{padding:5px 8px;border-radius:6px;font-size:11px;font-weight:700;background:#e8a020;color:#fff}
+.imgbtn:disabled{background:#ccc}
+.addbtn{padding:5px 8px;border-radius:6px;font-size:11px;font-weight:700;background:none;border:1.5px solid #888;color:#555}
+.cpbtn{padding:5px 8px;border-radius:6px;font-size:11px;font-weight:700;background:none;border:1.5px solid #1a5fb4;color:#1a5fb4}
+.ist{font-size:11px;color:#888;margin-bottom:6px;min-height:16px}
+.pre{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.numinput{width:50px;padding:8px 4px;background:#fff;border:1px solid #ccc;border-radius:8px;font-family:monospace;font-size:17px;text-align:center}
+.nameinput{flex:1;padding:8px 10px;background:#fff;border:1px solid #ccc;border-radius:8px;font-size:14px}
+.delbtn2{width:28px;height:28px;border-radius:50%;background:none;color:#bbb;font-size:17px}
+.emrtr{color:#bbb;font-size:13px;padding:6px 0}
+
+/* 試合情報タブ */
+#info-tab{display:none;padding:12px 10px 30px}
+.ifield{margin-bottom:12px}
+.ilabel{font-size:11px;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:4px}
+.iinput{width:100%;padding:10px 12px;background:#fff;border:1px solid #ccc;border-radius:8px;font-size:14px}
+
+/* ══ 履歴タブ ══ */
+#history-tab{display:none;padding:10px}
+.hist-note{font-size:12px;color:#888;margin-bottom:10px;padding:8px;background:#fff;border-radius:6px;border:1px solid #eee}
+.hist-entry{display:flex;align-items:center;gap:8px;padding:9px 10px;margin-bottom:6px;background:#fff;border-radius:8px;border:1px solid #eee;cursor:pointer}
+.hist-entry:active{background:#f5f5f5}
+.hist-entry.foul-entry{border-left:3px solid #e74c3c}
+.hist-entry.score-entry{border-left:3px solid #e8a020}
+.he-dot{width:24px;height:24px;border-radius:50%;border:1.5px solid #aaa;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.he-dot.wt{background:#fff;color:#000}.he-dot.bk{background:#111;color:#fff}
+.he-num{font-family:monospace;font-weight:700;font-size:15px;min-width:36px}
+.he-action{font-size:13px;color:#333;flex:1}
+.he-action.fa{color:#e74c3c}
+.he-q{font-size:10px;color:#aaa}
+.he-edit{padding:5px 10px;background:#f0f0f0;border-radius:6px;color:#555;font-size:12px;font-weight:700;border:1px solid #ddd;flex-shrink:0}
+.hist-empty{text-align:center;color:#bbb;padding:30px 0;font-size:13px}
+
+/* ══ メインモーダル（得点入力用）══ */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;align-items:flex-end;justify-content:center}
+#modal-overlay.open{display:flex}
+#modal{width:100%;max-width:640px;background:#fff;border-radius:20px 20px 0 0;padding:18px 16px 36px;max-height:85vh;overflow-y:auto}
+#modal-title{text-align:center;font-size:20px;font-weight:700;margin-bottom:14px;font-family:monospace}
+.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.pgbtn{padding:12px 4px;border-radius:10px;border:2px solid #ddd;background:#f8f8f8;cursor:pointer;transition:all .12s}
+.pgbtn:active{transform:scale(.92)}
+.pgbtn.sel{background:#e8a020;border-color:#e8a020}
+.pgnum{font-family:monospace;font-size:22px;font-weight:700;line-height:1;color:#222}
+.pgname{font-size:10px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgbtn.sel .pgnum,.pgbtn.sel .pgname{color:#fff}
+.modal-btns{display:flex;gap:8px}
+.cancel-btn{flex:1;padding:14px;background:#f0f0f0;border-radius:12px;color:#666;font-weight:700;font-size:15px}
+.confirm-btn{flex:2;padding:14px;border-radius:12px;color:#fff;font-weight:700;font-size:15px}
+.confirm-btn.w{background:#444}.confirm-btn.b{background:#111}
+.no-roster-note{text-align:center;color:#999;font-size:13px;padding:16px 0}
+
+/* ══ 修正モーダル ══ */
+#edit-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center}
+#edit-overlay.open{display:flex}
+#edit-modal{width:100%;max-width:640px;background:#fff;border-radius:20px 20px 0 0;padding:18px 16px 36px;max-height:90vh;overflow-y:auto}
+#em-title{text-align:center;font-size:17px;font-weight:700;margin-bottom:16px}
+.em-section{margin-bottom:16px}
+.em-label{font-size:11px;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:8px}
+/* 点数セレクター */
+.em-pts-row{display:flex;gap:8px}
+.em-pts-btn{flex:1;padding:14px 0;border-radius:10px;border:2px solid #ddd;background:#f5f5f5;font-family:monospace;font-size:22px;font-weight:700;color:#555;cursor:pointer;transition:all .12s}
+.em-pts-btn.sel{background:#e8a020;border-color:#e8a020;color:#fff}
+.em-pts-btn:active{transform:scale(.93)}
+/* 選手セレクター */
+.em-pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:4px}
+.em-pgbtn{padding:10px 4px;border-radius:8px;border:2px solid #ddd;background:#f8f8f8;cursor:pointer;transition:all .12s}
+.em-pgbtn:active{transform:scale(.92)}
+.em-pgbtn.sel{background:#e8a020;border-color:#e8a020}
+.em-pgnum{font-family:monospace;font-size:20px;font-weight:700;line-height:1;color:#222}
+.em-pgname{font-size:9px;color:#888;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.em-pgbtn.sel .em-pgnum,.em-pgbtn.sel .em-pgname{color:#fff}
+.em-no-roster{font-size:12px;color:#aaa;padding:8px 0}
+.em-btns{display:flex;gap:8px;margin-top:4px}
+.em-save{flex:2;padding:13px;background:#333;border-radius:12px;color:#fff;font-weight:700;font-size:15px}
+.em-del{flex:1;padding:13px;background:#fff;border:2px solid #e74c3c;border-radius:12px;color:#e74c3c;font-weight:700;font-size:13px}
+.em-cancel{flex:1;padding:13px;background:#f0f0f0;border-radius:12px;color:#888;font-weight:700;font-size:13px}
+
+/* 印刷 */
+@media print{
+  body{background:#fff;max-width:none;font-family:'Hiragino Kaku Gothic ProN','MS Gothic',sans-serif}
+  #home-view,#game-view{display:none!important}
+  #print-sheet{display:block!important}
+  @page{size:A4 landscape;margin:8mm}
+}
+#print-sheet{display:none}
+.ps{width:100%;font-size:9pt}
+.ps-title{text-align:center;font-size:12pt;font-weight:700;margin-bottom:3mm;border-bottom:1px solid #000;padding-bottom:1mm}
+.ps-info{display:flex;gap:6mm;margin-bottom:3mm;font-size:8pt}
+.ps-main{display:flex;gap:3mm}
+.ps-left{flex:0 0 58mm}
+.ps-right{flex:1}
+.ps-tsec{margin-bottom:3mm;border:1px solid #000}
+.ps-thdr{padding:1mm 2mm;font-size:9pt;font-weight:700;display:flex;justify-content:space-between}
+.ps-thdr.wt{background:#ddd;color:#000}.ps-thdr.bk{background:#333;color:#fff}
+.ps-ptbl{width:100%;border-collapse:collapse;font-size:7.5pt}
+.ps-ptbl th{border:1px solid #999;padding:.5mm 1mm;background:#f0f0f0;text-align:center}
+.ps-ptbl td{border:1px solid #ccc;padding:.5mm 1mm;text-align:center}
+.ps-ptbl td.nc{text-align:left}
+.ps-sgrid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #000}
+.ps-scol{border-right:1px solid #666}.ps-scol:last-child{border-right:none}
+.ps-shdr{display:flex;border-bottom:1px solid #999;font-size:6.5pt;font-weight:700}
+.ps-shdr-n{width:14pt;text-align:center;border-right:1px solid #bbb;background:#f0f0f0}
+.ps-shdr-w{flex:1;text-align:center;border-right:1px solid #bbb;background:#eee}
+.ps-shdr-b{flex:1;text-align:center;background:#333;color:#fff}
+.ps-srow{display:flex;border-bottom:1px solid #f0f0f0;height:8pt;align-items:center}
+.ps-srow:nth-child(5n){border-bottom:1px solid #ccc}
+.ps-n{width:14pt;text-align:right;padding-right:1pt;font-size:6.5pt;color:#888;flex-shrink:0;border-right:1px solid #e0e0e0}
+.ps-w{flex:1;display:flex;align-items:center;justify-content:center;font-size:6.5pt;font-weight:700;border-right:1px solid #e0e0e0;height:100%}
+.ps-b{flex:1;display:flex;align-items:center;justify-content:center;font-size:6.5pt;font-weight:700;height:100%}
+.sc-w{background:#888;color:#fff}.sc-b{background:#333;color:#fff}
+.cur-w,.cur-b{background:#e8a020!important;color:#fff}
+.ps-footer{margin-top:3mm;border:1px solid #000;padding:2mm}
+.ps-qtbl{width:100%;border-collapse:collapse;font-size:8pt}
+.ps-qtbl th,.ps-qtbl td{border:1px solid #999;padding:1mm 2mm;text-align:center}
+.ps-qtbl th{background:#f0f0f0;font-weight:700}
+.ps-final{font-size:13pt;font-weight:700;text-align:center;margin-top:2mm}
+</style>
+</head>
+<body>
+
+<!-- ホーム画面 -->
+<div id="home-view">
+  <div id="home-header">
+    <div><div id="home-title">🏀 バスケスコア</div><div id="home-sub">試合記録アプリ</div></div>
+    <button id="new-game-btn" onclick="createNewGame()">＋ 新しい試合</button>
+  </div>
+  <div id="game-list"></div>
+</div>
+
+<!-- ゲーム画面 -->
+<div id="game-view">
+  <div id="gnav">
+    <button id="back-btn" onclick="goHome()">← 一覧</button>
+    <div id="gnav-title"></div>
+    <button id="end-btn" onclick="toggleComplete()">試合終了</button>
+  </div>
+  <div id="gtabs">
+    <button class="gtab on" onclick="showTab('score')">スコア</button>
+    <button class="gtab" onclick="showTab('roster')">選手</button>
+    <button class="gtab" onclick="showTab('info')">情報</button>
+    <button class="gtab" onclick="showTab('history')">履歴・修正</button>
+  </div>
+
+  <!-- 得点タブ -->
+  <div id="score-tab">
+    <div id="shdr">
+      <div class="thdr"><div class="tlbl" id="lbl-W">白チーム</div><div class="tsc" id="sW">0</div></div>
+      <div style="text-align:center"><div style="color:#444;font-size:14px;margin-bottom:16px">—</div><div id="difflbl"></div><div id="qinfo">Q1</div></div>
+      <div class="thdr"><div class="tlbl" id="lbl-B">黒チーム</div><div class="tsc" id="sB">0</div></div>
+    </div>
+    <div id="rsc">
+      <div id="rsh">ランニングスコア</div>
+      <div class="ghdrs">
+        <div class="ghdr"><div class="ghsp"></div><div class="ghW">白</div><div class="ghB">黒</div></div>
+        <div class="ghdr"><div class="ghsp"></div><div class="ghW">白</div><div class="ghB">黒</div></div>
+        <div class="ghdr"><div class="ghsp"></div><div class="ghW">白</div><div class="ghB">黒</div></div>
+      </div>
+      <div id="gscroll"></div>
+    </div>
+    <div class="tib"><div class="til">⬜ 白チーム</div>
+      <div class="pbtns">
+        <button class="pbtn w" onclick="openModal('白',1)">+1</button>
+        <button class="pbtn w" onclick="openModal('白',2)">+2</button>
+        <button class="pbtn w" onclick="openModal('白',3)">+3</button>
+        <button class="pbtn w" onclick="openFoul('白')" style="font-size:13px;color:#c0392b;border-color:#fcc">FOUL</button>
+      </div>
+    </div>
+    <div class="tib"><div class="til">⬛ 黒チーム</div>
+      <div class="pbtns">
+        <button class="pbtn b" onclick="openModal('黒',1)">+1</button>
+        <button class="pbtn b" onclick="openModal('黒',2)">+2</button>
+        <button class="pbtn b" onclick="openModal('黒',3)">+3</button>
+        <button class="pbtn b" onclick="openFoul('黒')" style="font-size:13px;color:#ff7070;border-color:#500">FOUL</button>
+      </div>
+    </div>
+    <div id="undo-pdf-row">
+      <button id="ubtn" disabled onclick="undo()">↩ 直前を取消</button>
+      <button id="pdf-btn" onclick="printSheet()">📄 PDF</button>
+    </div>
+    <div id="q-row">
+      <div id="q-lbl">Q1</div>
+      <button id="q-end-btn" onclick="endQuarter()">このQを終了</button>
+      <div id="q-disp"></div>
+    </div>
+    <div id="player-stats">
+      <div class="ptwrap">
+        <div class="pthdr"><span id="th-W">白チーム</span><span id="tW" style="font-family:monospace;font-size:14px">0</span></div>
+        <table class="ptbl"><thead><tr><th>#</th><th>得点</th><th>F</th></tr></thead><tbody id="tbW"></tbody></table>
+      </div>
+      <div class="ptwrap bk">
+        <div class="pthdr"><span id="th-B">黒チーム</span><span id="tB" style="font-family:monospace;font-size:14px">0</span></div>
+        <table class="ptbl"><thead><tr><th style="color:#444;border-color:#222">#</th><th style="color:#444;border-color:#222">得点</th><th style="color:#444;border-color:#222">F</th></tr></thead><tbody id="tbB"></tbody></table>
+      </div>
+    </div>
+
+    <!-- スコアタブ内：最近の記録（その場で修正可） -->
+    <div id="score-log-area" style="padding:0 10px 16px;display:none">
+      <div style="font-size:10px;color:#999;font-weight:700;letter-spacing:2px;margin-bottom:6px">最近の記録　<span style="font-weight:400;color:#bbb">（タップして修正）</span></div>
+      <div id="score-log-list"></div>
+    </div>
+  </div>
+
+  <!-- 選手登録タブ -->
+  <div id="roster-tab">
+    <div id="api-section">
+      <div id="api-header" onclick="toggleApiSection()">
+        <span style="font-size:13px;font-weight:700;color:#555">🔑 APIキー設定（画像読み込みに必要）</span>
+        <div id="api-status"></div>
+      </div>
+      <div id="api-body">
+        <div class="api-note">1. <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> でAPIキーを取得<br>2. 下に貼り付けて「保存する」</div>
+        <input id="api-key-input" type="password" placeholder="sk-ant-..." autocomplete="off">
+        <button class="api-save-btn" onclick="saveApiKey()">保存する</button>
+        <button class="api-clear-btn" onclick="clearApiKey()">キーを削除する</button>
+      </div>
+    </div>
+    <div class="rtsec">
+      <div class="rthdr"><div class="rttitle wt">⬜ 白チーム</div>
+        <div class="rtbtns">
+          <button class="imgbtn" id="img-btn-W" onclick="triggerImport('白')">📷 画像</button>
+          <button class="cpbtn" onclick="copyRoster('白')">前回コピー</button>
+          <button class="addbtn" onclick="addPlayer('白')">＋</button>
+        </div>
+      </div>
+      <div class="ist" id="ist-W"></div>
+      <input type="file" id="file-W" accept="image/*" style="display:none" onchange="importFromImage(event,'白')">
+      <div id="roster-W"></div>
+    </div>
+    <div class="rtsec">
+      <div class="rthdr"><div class="rttitle bk">⬛ 黒チーム</div>
+        <div class="rtbtns">
+          <button class="imgbtn" id="img-btn-B" onclick="triggerImport('黒')">📷 画像</button>
+          <button class="cpbtn" onclick="copyRoster('黒')">前回コピー</button>
+          <button class="addbtn" onclick="addPlayer('黒')">＋</button>
+        </div>
+      </div>
+      <div class="ist" id="ist-B"></div>
+      <input type="file" id="file-B" accept="image/*" style="display:none" onchange="importFromImage(event,'黒')">
+      <div id="roster-B"></div>
+    </div>
+  </div>
+
+  <!-- 試合情報タブ -->
+  <div id="info-tab">
+    <div class="ifield"><div class="ilabel">白チーム名</div><input class="iinput" id="name-W" placeholder="例: 馬場商業高校" oninput="updateTeamName('白',this.value)"></div>
+    <div class="ifield"><div class="ilabel">黒チーム名</div><input class="iinput" id="name-B" placeholder="例: 三河学園高校" oninput="updateTeamName('黒',this.value)"></div>
+    <div class="ifield"><div class="ilabel">大会名</div><input class="iinput" id="game-title" placeholder="例: 県大会 準決勝" oninput="G.gameTitle=this.value;saveGame()"></div>
+    <div class="ifield"><div class="ilabel">日付・会場</div><input class="iinput" id="game-date" placeholder="例: 2024年6月15日　○○体育館" oninput="G.gameDate=this.value;saveGame()"></div>
+  </div>
+
+  <!-- 履歴・修正タブ -->
+  <div id="history-tab">
+    <div class="hist-note">✏️ エントリーをタップすると修正できます。点数・背番号の変更、削除が可能です。変更後は自動で全スコアを再計算します。</div>
+    <div id="hist-list"></div>
+  </div>
+</div>
+
+<!-- 印刷シート -->
+<div id="print-sheet"></div>
+
+<!-- 得点入力モーダル -->
+<div id="modal-overlay" onclick="closeModal()">
+  <div id="modal" onclick="event.stopPropagation()">
+    <div id="modal-title"></div>
+    <div id="pg-area"></div>
+    <div class="modal-btns">
+      <button class="cancel-btn" onclick="closeModal()">キャンセル</button>
+      <button class="confirm-btn" id="confirm-btn" onclick="confirmAction()">✓ 記録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 修正モーダル -->
+<div id="edit-overlay" onclick="closeEditModal()">
+  <div id="edit-modal" onclick="event.stopPropagation()">
+    <div id="em-title">記録を修正</div>
+
+    <!-- 点数変更（スコアのみ） -->
+    <div class="em-section" id="em-pts-section">
+      <div class="em-label">点数を変更</div>
+      <div class="em-pts-row">
+        <button class="em-pts-btn" onclick="emSelectPts(1)">1点</button>
+        <button class="em-pts-btn" onclick="emSelectPts(2)">2点</button>
+        <button class="em-pts-btn" onclick="emSelectPts(3)">3点</button>
+      </div>
+    </div>
+
+    <!-- ピリオド変更 -->
+    <div class="em-section">
+      <div class="em-label">ピリオドを変更</div>
+      <div class="em-pts-row" id="em-q-row">
+        <button class="em-pts-btn" onclick="emSelectQ(1)">Q1</button>
+        <button class="em-pts-btn" onclick="emSelectQ(2)">Q2</button>
+        <button class="em-pts-btn" onclick="emSelectQ(3)">Q3</button>
+        <button class="em-pts-btn" onclick="emSelectQ(4)">Q4</button>
+      </div>
+    </div>
+
+    <!-- 背番号変更 -->
+    <div class="em-section">
+      <div class="em-label">背番号を変更</div>
+      <div id="em-pg-area"></div>
+    </div>
+
+    <div class="em-btns">
+      <button class="em-cancel" onclick="closeEditModal()">キャンセル</button>
+      <button class="em-del" onclick="deleteEditAction()">🗑 削除</button>
+      <button class="em-save" onclick="saveEditAction()">✓ 保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ STORAGE ══
+function loadGames(){return JSON.parse(localStorage.getItem('bsk_games')||'[]');}
+function saveGames(arr){localStorage.setItem('bsk_games',JSON.stringify(arr));}
+let apiKey=localStorage.getItem('bsk_apikey')||'';
+let G=null;
+let selNum=null;
+
+// ══ GAME OBJECT ══
+function newGameObj(){
+  return{id:Date.now().toString(),createdAt:new Date().toLocaleDateString('ja-JP'),
+    gameTitle:'',gameDate:'',teamNames:{'白':'白チーム','黒':'黒チーム'},
+    scores:{'白':0,'黒':0},grid:{'白':{},'黒':{}},stats:{},
+    roster:{'白':[],'黒':[]},history:[],period:1,quarterScores:[],completed:false};
+}
+function saveGame(){
+  if(!G)return;
+  const games=loadGames();
+  const idx=games.findIndex(g=>g.id===G.id);
+  if(idx>=0)games[idx]=G;else games.unshift(G);
+  saveGames(games);
+}
+
+// ══ 履歴からスコアを全再計算 ══
+function rebuildFromHistory(){
+  G.scores={'白':0,'黒':0};
+  G.grid={'白':{},'黒':{}};
+  G.stats={};
+  // historyは新しい順（unshift）なので逆順＝古い順で再生
+  [...G.history].reverse().forEach(a=>{
+    if(a.type==='score'){
+      const prev=G.scores[a.team];
+      G.scores[a.team]=prev+a.pts;
+      const lbl=a.num||'-';
+      for(let i=prev+1;i<=prev+a.pts;i++)G.grid[a.team][i]=lbl;
+      if(a.num){
+        const k=a.team+'-'+a.num;
+        if(!G.stats[k])G.stats[k]={pts:0,fouls:0,num:a.num,team:a.team};
+        G.stats[k].pts+=a.pts;
+      }
+    }else if(a.type==='foul'&&a.num){
+      const k=a.team+'-'+a.num;
+      if(!G.stats[k])G.stats[k]={pts:0,fouls:0,num:a.num,team:a.team};
+      G.stats[k].fouls++;
+    }
+  });
+}
+
+function refreshAllUI(){
+  refreshGrid();renderScores();renderTable('白');renderTable('黒');
+  renderHistory();renderScoreLog();renderUndo();saveGame();
+}
+
+function renderScoreLog(){
+  const area=document.getElementById('score-log-area');
+  const list=document.getElementById('score-log-list');
+  if(!G.history.length){area.style.display='none';return;}
+  area.style.display='block';
+  list.innerHTML=G.history.slice(0,8).map((a,i)=>{
+    const isScore=a.type==='score';
+    const bl=a.team==='白'?'#bbb':'#222';
+    const txt=isScore?'+'+a.pts+'点':'ファウル';
+    return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:4px;background:#fff;border-radius:8px;border:1px solid #eee;border-left:4px solid ${bl};cursor:pointer${i===0?';box-shadow:0 1px 4px rgba(0,0,0,.08)':''}" onclick="openEditModal('${a.id}')">
+      <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid #aaa;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;background:${a.team==='白'?'#fff':'#111'};color:${a.team==='白'?'#000':'#fff'};flex-shrink:0">${a.team}</div>
+      <div style="font-family:monospace;font-weight:700;font-size:13px;min-width:32px">#${a.num||'?'}</div>
+      <div style="font-size:12px;color:${isScore?'#333':'#e74c3c'};flex:1">${txt}</div>
+      <div style="font-size:10px;color:#bbb">Q${a.period||'?'}</div>
+      <div style="font-size:11px;color:#1a5fb4;font-weight:700;padding:3px 8px;background:#f0f5ff;border-radius:4px">修正</div>
+    </div>`;
+  }).join('');
+}
+
+// ══ ホーム ══
+function renderHome(){
+  document.getElementById('home-view').style.display='block';
+  document.getElementById('game-view').style.display='none';
+  const games=loadGames();
+  const el=document.getElementById('game-list');
+  if(!games.length){el.innerHTML='<div class="gl-empty">試合記録がありません<br>「＋ 新しい試合」から始めましょう</div>';return;}
+  el.innerHTML=games.map(g=>`
+    <div class="game-card">
+      <div class="gc-body" onclick="openGame('${g.id}')">
+        <div class="gc-date">${g.createdAt}　${g.gameDate||''}</div>
+        <div class="gc-teams">
+          <div class="gc-team">${g.teamNames['白']}</div>
+          <div class="gc-score">${g.scores['白']}</div>
+          <div class="gc-sep">—</div>
+          <div class="gc-score">${g.scores['黒']}</div>
+          <div class="gc-team">${g.teamNames['黒']}</div>
+        </div>
+        <div class="gc-info">${g.gameTitle||'試合'}<span class="gc-status ${g.completed?'done':'active'}">${g.completed?'終了':'進行中'}</span></div>
+      </div>
+      <div class="gc-footer">
+        <button class="gc-open" onclick="openGame('${g.id}')">開く</button>
+        <button class="gc-del" onclick="deleteGame(event,'${g.id}')">🗑 削除</button>
+      </div>
+    </div>`).join('');
+}
+function createNewGame(){G=newGameObj();saveGame();openGameView();}
+function openGame(id){
+  const g=loadGames().find(x=>x.id===id);
+  if(!g)return;
+  // 古い形式のhistoryにIDを付与
+  g.history=(g.history||[]).map(a=>({...a,id:a.id||(Date.now()+''+Math.random()).replace('.','') }));
+  G=g;openGameView();
+}
+function deleteGame(e,id){
+  e.stopPropagation();
+  if(!confirm('この試合データを削除しますか？'))return;
+  saveGames(loadGames().filter(g=>g.id!==id));
+  renderHome();
+}
+function goHome(){saveGame();G=null;renderHome();}
+function toggleComplete(){
+  G.completed=!G.completed;
+  document.getElementById('end-btn').textContent=G.completed?'再開':'試合終了';
+  document.getElementById('end-btn').style.background=G.completed?'#e8a020':'#27ae60';
+  saveGame();
+}
+
+// ══ ゲーム画面起動 ══
+function openGameView(){
+  document.getElementById('home-view').style.display='none';
+  document.getElementById('game-view').style.display='block';
+  rebuildFromHistory();
+  buildGrid();refreshGrid();renderScores();
+  renderTable('白');renderTable('黒');
+  renderRoster('白');renderRoster('黒');
+  renderHistory();renderScoreLog();renderUndo();updateApiStatus();
+  document.getElementById('name-W').value=G.teamNames['白']==='白チーム'?'':G.teamNames['白'];
+  document.getElementById('name-B').value=G.teamNames['黒']==='黒チーム'?'':G.teamNames['黒'];
+  document.getElementById('game-title').value=G.gameTitle||'';
+  document.getElementById('game-date').value=G.gameDate||'';
+  document.getElementById('gnav-title').textContent=G.gameTitle||`${G.teamNames['白']} vs ${G.teamNames['黒']}`;
+  document.getElementById('end-btn').textContent=G.completed?'再開':'試合終了';
+  document.getElementById('end-btn').style.background=G.completed?'#e8a020':'#27ae60';
+  showTab('score');autoScroll();
+}
+
+// ══ グリッド ══
+function buildGrid(){
+  const sc=document.getElementById('gscroll');sc.innerHTML='';
+  [[1,50],[51,100],[101,150]].forEach(([a,b],gi)=>{
+    const col=document.createElement('div');col.className='gcol';
+    if(gi===2)col.style.borderRight='none';
+    for(let n=a;n<=b;n++){
+      const row=document.createElement('div');row.className='grow';
+      const nm=document.createElement('div');nm.className='gnum';nm.id='gn'+n;nm.textContent=n;
+      const cW=document.createElement('div');cW.className='gc gcW';cW.id='cW'+n;
+      const cB=document.createElement('div');cB.className='gc gcB';cB.id='cB'+n;
+      row.append(nm,cW,cB);col.append(row);
+    }
+    sc.append(col);
+  });
+}
+function updateCell(team,n){
+  const t=team==='白'?'W':'B';
+  const cell=document.getElementById('c'+t+n),nm=document.getElementById('gn'+n);
+  if(!cell)return;
+  const val=G.grid[team][n],cur=n===G.scores[team];
+  cell.textContent=val!==undefined?val:'';
+  cell.className='gc gc'+t+(val!==undefined?' sc':'')+(cur?' cur':'');
+  if(nm)nm.className='gnum'+(cur?' hl':'');
+}
+function refreshGrid(){for(let n=1;n<=150;n++){updateCell('白',n);updateCell('黒',n);}}
+function autoScroll(){
+  const max=Math.max(G.scores['白'],G.scores['黒']);
+  if(max<=0)return;
+  const sc=document.getElementById('gscroll');
+  sc.scrollTop=Math.max(0,((max-1)%50)*17-sc.clientHeight/2+17);
+}
+
+// ══ スコア表示 ══
+function renderScores(){
+  document.getElementById('sW').textContent=G.scores['白'];
+  document.getElementById('sB').textContent=G.scores['黒'];
+  document.getElementById('tW').textContent=G.scores['白'];
+  document.getElementById('tB').textContent=G.scores['黒'];
+  const d=G.scores['白']-G.scores['黒'];
+  document.getElementById('difflbl').textContent=d===0?'':(d>0?'白':'黒')+'+'+Math.abs(d);
+  document.getElementById('qinfo').textContent='Q'+G.period;
+  document.getElementById('q-lbl').textContent='Q'+G.period;
+  const qs=G.quarterScores;
+  document.getElementById('q-disp').textContent=qs.length?qs.map(q=>`Q${q.period}:${q.W}-${q.B}`).join(' '):'';
+}
+function updateTeamName(team,val){
+  const t=team==='白'?'W':'B';
+  G.teamNames[team]=val||(team==='白'?'白チーム':'黒チーム');
+  document.getElementById('lbl-'+t).textContent=G.teamNames[team];
+  document.getElementById('th-'+t).textContent=G.teamNames[team];
+  document.getElementById('gnav-title').textContent=G.gameTitle||`${G.teamNames['白']} vs ${G.teamNames['黒']}`;
+  saveGame();
+}
+function endQuarter(){
+  G.quarterScores.push({period:G.period,W:G.scores['白'],B:G.scores['黒']});
+  if(G.period<4)G.period++;
+  renderScores();saveGame();
+}
+
+// ══ 選手表 ══
+function renderTable(team){
+  const t=team==='白'?'W':'B';
+  const tb=document.getElementById('tb'+t);
+  const pl=Object.values(G.stats).filter(p=>p.team===team).sort((a,b)=>isNaN(+a.num)?1:isNaN(+b.num)?-1:+a.num-+b.num);
+  if(!pl.length){tb.innerHTML=`<tr><td colspan="3" class="emsg">${G.roster[team].length?'記録なし':'未登録'}</td></tr>`;return;}
+  tb.innerHTML=pl.map(p=>{
+    const fc=(p.fouls||0)>=5?'fr':(p.fouls||0)>=3?'fy':'';
+    return`<tr class="ptr"><td>${p.num}</td><td>${p.pts||0}</td><td class="${fc}">${p.fouls||''}</td></tr>`;
+  }).join('');
+}
+
+// ══ 履歴表示 ══
+function renderHistory(){
+  const el=document.getElementById('hist-list');
+  if(!G.history.length){el.innerHTML='<div class="hist-empty">まだ記録がありません</div>';return;}
+  el.innerHTML=G.history.map(a=>{
+    const isScore=a.type==='score';
+    const actionTxt=isScore?`+${a.pts}点`:'ファウル';
+    const clr=isScore?'score-entry':'foul-entry';
+    return`<div class="hist-entry ${clr}" onclick="openEditModal('${a.id}')">
+      <div class="he-dot ${a.team==='白'?'wt':'bk'}">${a.team}</div>
+      <div class="he-num">#${a.num||'?'}</div>
+      <div class="he-action ${isScore?'':'fa'}">${actionTxt}</div>
+      <div class="he-q">Q${a.period||'?'}</div>
+      <button class="he-edit" onclick="event.stopPropagation();openEditModal('${a.id}')">修正</button>
+    </div>`;
+  }).join('');
+}
+
+// ══ アンドゥ（最新1件を削除して再計算）══
+function renderUndo(){
+  const btn=document.getElementById('ubtn');
+  if(!G.history.length){btn.disabled=true;btn.textContent='↩ 直前を取消';return;}
+  const a=G.history[0];
+  btn.disabled=false;
+  btn.textContent=`↩ 取消 (${a.team}${a.num?' #'+a.num:''} ${a.type==='foul'?'F':'+'+a.pts+'点'})`;
+}
+function undo(){
+  if(!G.history.length)return;
+  G.history.shift();
+  rebuildFromHistory();
+  refreshAllUI();
+}
+
+// ══ 記録追加（IDを付与）══
+function applyAction(action){
+  action.id=Date.now().toString()+Math.random().toString(36).slice(2);
+  G.history.unshift(action);
+  rebuildFromHistory();
+  refreshAllUI();
+}
+
+// ══ 得点入力モーダル ══
+function openModal(team,pts){
+  selNum=null;G.modal={team,pts,type:'score'};
+  document.getElementById('modal-title').innerHTML=`<span>${G.teamNames[team]}</span> <span style="color:#e8a020">+${pts}点</span>`;
+  document.getElementById('confirm-btn').className='confirm-btn '+(team==='白'?'w':'b');
+  buildPG(team,'pg-area','pgrid','pgbtn','pgnum','pgname');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function openFoul(team){
+  selNum=null;G.modal={team,type:'foul'};
+  document.getElementById('modal-title').innerHTML=`<span>${G.teamNames[team]}</span> <span style="color:#e74c3c"> ファウル</span>`;
+  document.getElementById('confirm-btn').className='confirm-btn '+(team==='白'?'w':'b');
+  buildPG(team,'pg-area','pgrid','pgbtn','pgnum','pgname');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function buildPG(team,areaId,gridCls,btnCls,numCls,nameCls){
+  const area=document.getElementById(areaId);
+  if(!G.roster[team].length){area.innerHTML='<div class="no-roster-note">「選手」タブで選手を追加してください</div>';return;}
+  const grid=document.createElement('div');grid.className=gridCls;
+  G.roster[team].forEach(p=>{
+    const btn=document.createElement('button');btn.className=btnCls;btn.dataset.num=p.num;
+    btn.innerHTML=`<div class="${numCls}">${p.num}</div><div class="${nameCls}">${p.name||'　'}</div>`;
+    btn.onclick=()=>{
+      selNum=p.num;
+      area.querySelectorAll('.'+btnCls).forEach(b=>b.classList.remove('sel'));
+      btn.classList.add('sel');
+    };
+    grid.append(btn);
+  });
+  area.innerHTML='';area.append(grid);
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');G.modal=null;selNum=null;}
+function confirmAction(){
+  if(!G.modal)return;
+  const{team,pts,type}=G.modal;
+  const action={type,team,num:selNum,period:G.period};
+  if(type==='score')action.pts=pts;
+  applyAction(action);
+  closeModal();
+}
+
+// ══ 修正モーダル ══
+let editTargetId=null;
+let emSelNum=null;
+let emSelPts=null;
+
+function openEditModal(id){
+  const action=G.history.find(a=>a.id===id);
+  if(!action)return;
+  editTargetId=id;emSelNum=action.num;emSelPts=action.pts;
+  const isScore=action.type==='score';
+  document.getElementById('em-title').textContent=`修正: ${G.teamNames[action.team]} #${action.num||'?'} ${isScore?'+'+action.pts+'点':'ファウル'}`;
+  // 点数セクター
+  const ptsSection=document.getElementById('em-pts-section');
+  ptsSection.style.display=isScore?'block':'none';
+  if(isScore){
+    ptsSection.querySelectorAll('.em-pts-btn').forEach(b=>{
+      b.classList.toggle('sel',parseInt(b.textContent)===action.pts);
+    });
+  }
+  // Q初期値
+  emSelQ=action.period||G.period;
+  document.querySelectorAll('#em-q-row .em-pts-btn').forEach((b,i)=>b.classList.toggle('sel',i+1===emSelQ));
+  // 選手グリッド
+  buildEmPG(action.team,action.num);
+  document.getElementById('edit-overlay').classList.add('open');
+}
+
+function buildEmPG(team,currentNum){
+  const area=document.getElementById('em-pg-area');
+  if(!G.roster[team].length){area.innerHTML='<div class="em-no-roster">選手が登録されていません</div>';return;}
+  const grid=document.createElement('div');grid.className='em-pgrid';
+  G.roster[team].forEach(p=>{
+    const btn=document.createElement('button');btn.className='em-pgbtn';btn.dataset.num=p.num;
+    if(p.num===currentNum)btn.classList.add('sel');
+    btn.innerHTML=`<div class="em-pgnum">${p.num}</div><div class="em-pgname">${p.name||'　'}</div>`;
+    btn.onclick=()=>{
+      emSelNum=p.num;
+      area.querySelectorAll('.em-pgbtn').forEach(b=>b.classList.remove('sel'));
+      btn.classList.add('sel');
+    };
+    grid.append(btn);
+  });
+  area.innerHTML='';area.append(grid);
+}
+
+function emSelectPts(pts){
+  emSelPts=pts;
+  document.querySelectorAll('.em-pts-btn').forEach(b=>b.classList.toggle('sel',parseInt(b.textContent)===pts));
+}
+
+let emSelQ=null;
+
+function emSelectQ(q){
+  emSelQ=q;
+  document.querySelectorAll('#em-q-row .em-pts-btn').forEach((b,i)=>b.classList.toggle('sel',i+1===q));
+}
+
+function saveEditAction(){
+  const action=G.history.find(a=>a.id===editTargetId);
+  if(!action)return;
+  if(action.type==='score'&&emSelPts)action.pts=emSelPts;
+  action.num=emSelNum;
+  if(emSelQ)action.period=emSelQ;
+  rebuildFromHistory();
+  refreshAllUI();
+  closeEditModal();
+}
+
+function deleteEditAction(){
+  if(!confirm('この記録を削除しますか？'))return;
+  G.history=G.history.filter(a=>a.id!==editTargetId);
+  rebuildFromHistory();
+  refreshAllUI();
+  closeEditModal();
+}
+
+function closeEditModal(){
+  document.getElementById('edit-overlay').classList.remove('open');
+  editTargetId=null;emSelNum=null;emSelPts=null;emSelQ=null;
+}
+
+// ══ 選手登録 ══
+function renderRoster(team){
+  const t=team==='白'?'W':'B';
+  const el=document.getElementById('roster-'+t);
+  if(!G.roster[team].length){el.innerHTML='<div class="emrtr">選手が登録されていません</div>';return;}
+  el.innerHTML=G.roster[team].map((p,i)=>`
+    <div class="pre">
+      <input class="numinput" value="${p.num}" placeholder="#" maxlength="3" oninput="G.roster['${team}'][${i}].num=this.value;saveGame()">
+      <input class="nameinput" value="${p.name}" placeholder="選手名" oninput="G.roster['${team}'][${i}].name=this.value;saveGame()">
+      <button class="delbtn2" onclick="delPlayer('${team}',${i})">×</button>
+    </div>`).join('');
+}
+function addPlayer(team){
+  G.roster[team].push({num:'',name:''});renderRoster(team);saveGame();
+  setTimeout(()=>{const ins=document.getElementById('roster-'+(team==='白'?'W':'B')).querySelectorAll('.numinput');if(ins.length)ins[ins.length-1].focus();},50);
+}
+function delPlayer(team,idx){G.roster[team].splice(idx,1);renderRoster(team);saveGame();}
+function copyRoster(team){
+  const prev=loadGames().find(g=>g.id!==G.id&&g.roster[team]&&g.roster[team].length>0);
+  if(!prev){alert('コピー元の試合記録がありません');return;}
+  if(!confirm(`「${prev.teamNames[team]}」の選手(${prev.roster[team].length}名)をコピーしますか？`))return;
+  G.roster[team]=JSON.parse(JSON.stringify(prev.roster[team]));
+  renderRoster(team);saveGame();
+}
+
+// ══ API KEY ══
+function updateApiStatus(){
+  const st=document.getElementById('api-status');
+  if(apiKey){st.textContent='✅ 設定済み';st.style.color='#27ae60';}
+  else{st.textContent='未設定';st.style.color='#e74c3c';}
+}
+function toggleApiSection(){
+  const body=document.getElementById('api-body');body.style.display=body.style.display==='block'?'none':'block';
+  if(body.style.display==='block')document.getElementById('api-key-input').value=apiKey;
+}
+function saveApiKey(){
+  const v=document.getElementById('api-key-input').value.trim();
+  if(!v){alert('APIキーを入力してください');return;}
+  apiKey=v;localStorage.setItem('bsk_apikey',v);updateApiStatus();document.getElementById('api-body').style.display='none';alert('保存しました！');
+}
+function clearApiKey(){
+  if(!confirm('APIキーを削除しますか？'))return;
+  apiKey='';localStorage.removeItem('bsk_apikey');document.getElementById('api-key-input').value='';updateApiStatus();
+}
+
+// ══ 画像インポート ══
+function triggerImport(team){
+  if(!apiKey){alert('APIキーが設定されていません');document.getElementById('api-body').style.display='block';return;}
+  document.getElementById('file-'+(team==='白'?'W':'B')).click();
+}
+async function importFromImage(e,team){
+  const file=e.target.files[0];if(!file)return;
+  const t=team==='白'?'W':'B';
+  const btn=document.getElementById('img-btn-'+t),st=document.getElementById('ist-'+t);
+  btn.disabled=true;btn.textContent='⏳';
+  st.textContent='AI解析中...';st.style.color='#888';
+  const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:file.type,data:b64}},
+        {type:'text',text:'この画像はバスケットボールのメンバー表です。No.列（背番号）と選手名を全員抽出してください。JSONのみ返してください（前置き不要）。形式: [{"num":"00","name":"山田"},{"num":"34","name":"氏名1"},...] 注意: 背番号は00や05など2桁もそのまま文字列で維持。名前はそのまま読み取る。名前欄が空欄の場合のみ空文字。背番号不明は"?"。'}
+      ]}]})
+    });
+    if(!resp.ok){const err=await resp.json();throw new Error(err.error?.message||resp.statusText);}
+    const data=await resp.json();
+    const text=data.content.find(b=>b.type==='text')?.text||'[]';
+    const players=JSON.parse(text.replace(/```[\w]*\n?/g,'').trim());
+    G.roster[team]=players;renderRoster(team);saveGame();
+    st.textContent=`✅ ${players.length}名を読み込みました`;st.style.color='#27ae60';
+  }catch(err){st.textContent='❌ '+err.message;st.style.color='#e74c3c';}
+  btn.disabled=false;btn.textContent='📷 画像';e.target.value='';
+}
+
+// ══ タブ ══
+function showTab(t){
+  ['score','roster','info','history'].forEach(id=>{
+    document.getElementById(id+'-tab').style.display=t===id?'block':'none';
+  });
+  document.querySelectorAll('.gtab').forEach((b,i)=>b.classList.toggle('on',
+    ['score','roster','info','history'].indexOf(t)===i));
+}
+
+// ══ PDF ══
+function printSheet(){
+  const maxScore=Math.max(G.scores['白'],G.scores['黒'],10);
+  function makeGrid(){
+    return`<div class="ps-sgrid">${[[1,50],[51,100],[101,150]].map(([a,b])=>`
+      <div class="ps-scol">
+        <div class="ps-shdr"><div class="ps-shdr-n">#</div><div class="ps-shdr-w">白</div><div class="ps-shdr-b">黒</div></div>
+        ${Array.from({length:b-a+1},(_,i)=>a+i).map(n=>{
+          const w=G.grid['白'][n],bk=G.grid['黒'][n];
+          return`<div class="ps-srow" style="${n>maxScore+5?'opacity:.1':''}">
+            <div class="ps-n">${n}</div>
+            <div class="ps-w ${n===G.scores['白']?'cur-w':w!==undefined?'sc-w':''}">${w||''}</div>
+            <div class="ps-b ${n===G.scores['黒']?'cur-b':bk!==undefined?'sc-b':''}">${bk||''}</div>
+          </div>`;
+        }).join('')}
+      </div>`).join('')}</div>`;
+  }
+  function makeTable(team){
+    const color=team==='白'?'wt':'bk';
+    const rows=G.roster[team].length?G.roster[team].map(p=>{
+      const k=team+'-'+p.num;const st=G.stats[k]||{pts:0,fouls:0};
+      return`<tr><td>${p.num}</td><td class="nc">${p.name||''}</td><td>${st.pts||0}</td><td style="${st.fouls>=5?'color:#e74c3c':st.fouls>=3?'color:#e8a020':''}">${st.fouls||''}</td></tr>`;
+    }).join(''):`<tr><td colspan="4" style="text-align:center;color:#999">なし</td></tr>`;
+    return`<div class="ps-tsec"><div class="ps-thdr ${color}">${G.teamNames[team]}　計 ${G.scores[team]}点</div>
+      <table class="ps-ptbl"><thead><tr><th>#</th><th>選手名</th><th>得点</th><th>F</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  const qRows=['白','黒'].map(team=>{
+    const t=team==='白'?'W':'B';
+    const cells=[1,2,3,4].map(q=>{
+      const qd=G.quarterScores.find(x=>x.period===q);
+      const prev=G.quarterScores.find(x=>x.period===q-1);
+      return`<td>${qd?(qd[t]-(prev?prev[t]:0)):''}</td>`;
+    }).join('');
+    return`<tr><th>${G.teamNames[team]}</th>${cells}<td><b>${G.scores[team]}</b></td></tr>`;
+  }).join('');
+  document.getElementById('print-sheet').innerHTML=`<div class="ps">
+    <div class="ps-title">${G.gameTitle||'バスケットボール スコアシート'}</div>
+    <div class="ps-info"><span>日時: ${G.gameDate||''}</span><span>${G.teamNames['白']} vs ${G.teamNames['黒']}</span></div>
+    <div class="ps-main"><div class="ps-left">${makeTable('白')}${makeTable('黒')}</div><div class="ps-right">${makeGrid()}</div></div>
+    <div class="ps-footer">
+      <table class="ps-qtbl"><thead><tr><th>チーム</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>合計</th></tr></thead><tbody>${qRows}</tbody></table>
+      <div class="ps-final">${G.teamNames['白']} ${G.scores['白']} — ${G.scores['黒']} ${G.teamNames['黒']}</div>
+    </div>
+  </div>`;
+  window.print();
+}
+
+// ══ INIT ══
+renderHome();
+</script>
+</body>
+</html>
