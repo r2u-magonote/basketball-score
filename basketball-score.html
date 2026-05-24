@@ -472,7 +472,7 @@ input{font-family:inherit}
       <div style="font-size:11px;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:6px">ゴール下のタイプ</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
         <button class="sm-type-btn" onclick="smSetType('fastbreak')" style="padding:8px 2px;border-radius:8px;border:2px solid #ddd;background:#f8f8f8;font-size:11px;font-weight:700;color:#555">速攻</button>
-        <button class="sm-type-btn" onclick="smSetType('layup')" style="padding:8px 2px;border-radius:8px;border:2px solid #ddd;background:#f8f8f8;font-size:11px;font-weight:700;color:#555">レイアップ</button>
+        <button class="sm-type-btn" onclick="smSetType('post')" style="padding:8px 2px;border-radius:8px;border:2px solid #ddd;background:#f8f8f8;font-size:11px;font-weight:700;color:#555">ポスト</button>
         <button class="sm-type-btn" onclick="smSetType('drive')" style="padding:8px 2px;border-radius:8px;border:2px solid #ddd;background:#f8f8f8;font-size:11px;font-weight:700;color:#555">ドライブ</button>
         <button class="sm-type-btn" onclick="smSetType('rebound')" style="padding:8px 2px;border-radius:8px;border:2px solid #ddd;background:#f8f8f8;font-size:11px;font-weight:700;color:#555">リバウンド</button>
       </div>
@@ -573,7 +573,7 @@ function newGameObj(){
   return{id:Date.now().toString(),createdAt:new Date().toLocaleDateString('ja-JP'),
     gameTitle:'',gameDate:'',teamNames:{'白':'白チーム','黒':'黒チーム'},
     scores:{'白':0,'黒':0},grid:{'白':{},'黒':{}},stats:{},
-    roster:{'白':[],'黒':[]},history:[],period:1,quarterScores:[],completed:false,timeouts:{'白':{'h1':[null,null],'h2':[null,null,null],'ot':[null,null]},'黒':{'h1':[null,null],'h2':[null,null,null],'ot':[null,null]}},shots:[],ftSets:[],turnovers:{'白':{1:0,2:0,3:0,4:0,5:0},'黒':{1:0,2:0,3:0,4:0,5:0}},teamPhotos:{'白':null,'黒':null}};
+    roster:{'白':[],'黒':[]},history:[],period:1,quarterScores:[],completed:false,timeouts:{'白':{'h1':[null,null],'h2':[null,null,null],'ot':[null,null]},'黒':{'h1':[null,null],'h2':[null,null,null],'ot':[null,null]}},shots:[],ftSets:[],toRecords:[],turnovers:{'白':{1:0,2:0,3:0,4:0,5:0},'黒':{1:0,2:0,3:0,4:0,5:0}},teamPhotos:{'白':null,'黒':null}};
 }
 function saveGame(){
   if(!G)return;
@@ -745,6 +745,8 @@ function renderTimeouts(){
   const el=document.getElementById('to-display');
   if(!el)return;
   initTimeouts();
+  // slots が配列でない場合は再初期化
+  ['白','黒'].forEach(team=>['h1','h2','ot'].forEach(h=>{if(!Array.isArray(G.timeouts[team][h])){const max=h==='h1'?2:h==='h2'?3:2;G.timeouts[team][h]=Array.from({length:max},()=>null);}}));
   const curHalf=getHalf();
   // 全ての期間（前半/後半/OT）を表示
   const halves=['h1','h2','ot'];
@@ -767,7 +769,7 @@ function renderTimeouts(){
       return`<span style="margin-right:6px;opacity:${isCur?1:0.5}">
         <span style="font-size:9px;color:${team==='白'?'#888':'#aaa'}">${getTOLabel(half)}</span>
         ${dots}
-        <span style="font-size:9px;color:${isCur?'#e8a020':(team==='白'?'#bbb':'#666')}">残${max-used}</span>
+        <span style="font-size:9px;color:${isCur?'#e8a020':(team==='白'?'#bbb':'#666')}"></span>
       </span>`;
     }).join('');
     const bg=team==='白'?'#fff':'#111';
@@ -813,30 +815,27 @@ function initShotData(){
 }
 
 function getQTO(team,q){
-  initShotData();
-  if(!q)return Object.values(G.turnovers[team]).reduce((a,v)=>a+v,0);
-  return G.turnovers[team][q]||0;
-}
-function changeTo(team,d){
-  initShotData();
-  const q=G.period;
-  G.turnovers[team][q]=Math.max(0,(G.turnovers[team][q]||0)+d);
-  renderTOSection();renderShotStats();saveGame();
+  if(!G.toRecords)return 0;
+  if(!q)return G.toRecords.filter(r=>r.team===team).length;
+  return G.toRecords.filter(r=>r.team===team&&r.period===q).length;
 }
 
 function setShotTeam(team){
   activeShotTeam=team;
   document.getElementById('sct-W').className='sc-tbtn'+(team==='白'?' on':'');
   document.getElementById('sct-B').className='sc-tbtn'+(team==='黒'?' on':'');
+  initShotData();
+  if(!G.toRecords)G.toRecords=[];
   renderShotMarkers();renderFTList();renderTOSection();renderShotStats();
 }
 
 // コート座標ゾーン判定
 function getZone(x,y){
-  if(x>=108&&x<=192&&y>=194)return'key';
-  const dx=x-150,dy=y-243;
+  // FIBA正確座標: basket(140,230), paint 96-184 y154-258, 3P r=122, corner x=21/259 y<203
+  if(x>=96&&x<=184&&y>=154)return'key';
+  const dx=x-140,dy=y-230;
   const d=Math.sqrt(dx*dx+dy*dy);
-  if(d>127||(y>175&&(x<40||x>260)))return'three';
+  if(d>122||(y>203&&(x<21||x>259)))return'three';
   return'two';
 }
 
@@ -877,8 +876,8 @@ function initCourtEvents(){
     e.preventDefault();
     const touch=e.changedTouches[0];
     const r=svg.getBoundingClientRect();
-    const sx=Math.max(5,Math.min(295,(touch.clientX-r.left)*300/r.width));
-    const sy=Math.max(5,Math.min(255,(touch.clientY-r.top)*260/r.height));
+    const sx=Math.max(5,Math.min(275,(touch.clientX-r.left)*280/r.width));
+    const sy=Math.max(5,Math.min(260,(touch.clientY-r.top)*265/r.height));
     // 仮のマーカー移動
     const shot=G.shots.find(s=>s.id===dragShotId);
     if(shot){shot._dx=sx;shot._dy=sy;renderShotMarkers();}
@@ -890,14 +889,17 @@ function initCourtEvents(){
     e.preventDefault();
     const touch=e.changedTouches[0];
     const r=svg.getBoundingClientRect();
-    const sx=Math.max(5,Math.min(295,(touch.clientX-r.left)*300/r.width));
-    const sy=Math.max(5,Math.min(255,(touch.clientY-r.top)*260/r.height));
+    const sx=Math.max(5,Math.min(275,(touch.clientX-r.left)*280/r.width));
+    const sy=Math.max(5,Math.min(260,(touch.clientY-r.top)*265/r.height));
 
     if(dragActive&&dragShotId){
       // ドラッグ確定
       const shot=G.shots.find(s=>s.id===dragShotId);
       if(shot){shot.x=sx;shot.y=sy;shot.zone=getZone(sx,sy);delete shot._dx;delete shot._dy;}
       renderShotMarkers();saveGame();
+    }else if(dragShotId&&!dragActive){
+      // マーカータップ→修正モーダル
+      openShotEditModal(dragShotId);
     }else if(!dragShotId){
       // 新規シュート
       openShotModal(sx,sy);
@@ -909,10 +911,10 @@ function initCourtEvents(){
   svg.addEventListener('click',function(e){
     if(dragActive)return;
     const marker=e.target.closest('[data-sid]');
-    if(marker){deleteShotConfirm(marker.dataset.sid);return;}
+    if(marker){openShotEditModal(marker.dataset.sid);return;}
     const r=svg.getBoundingClientRect();
-    const sx=(e.clientX-r.left)*300/r.width;
-    const sy=(e.clientY-r.top)*260/r.height;
+    const sx=(e.clientX-r.left)*280/r.width;
+    const sy=(e.clientY-r.top)*265/r.height;
     openShotModal(sx,sy);
   });
 }
@@ -957,32 +959,46 @@ function smSetType(t){
     b.classList.toggle('on',match);
   });
 }
-function closeShotModal(){document.getElementById('shot-modal').style.display='none';}
+function closeShotModal(){
+  document.getElementById('shot-modal').style.display='none';
+  const btn=document.getElementById('sm-confirm');
+  if(btn){btn.removeAttribute('data-edit-id');btn.textContent='✓ 記録';btn.style.background='#333';}
+}
 function confirmShot(){
-  if(smMade===null)return;
-  initShotData();
-  const shot={
-    id:Date.now().toString()+Math.random().toString(36).slice(2),
-    x:smX,y:smY,num:smNum||'',team:activeShotTeam,
-    made:smMade,zone:smZone,type:smType||'',period:G.period
-  };
-  G.shots.push(shot);
-  // スコア自動反映
-  const autoChk=document.getElementById('auto-score-chk');
-  if(smMade&&autoChk&&autoChk.checked){
-    const pts=smZone==='three'?3:2;
-    const prev=G.scores[activeShotTeam];
-    const lbl=smNum||'-';
-    G.scores[activeShotTeam]=prev+pts;
-    for(let i=prev+1;i<=prev+pts;i++){G.grid[activeShotTeam][i]=lbl;updateCell(activeShotTeam,i);}
-    if(prev>0)updateCell(activeShotTeam,prev);
-    if(smNum){const k=activeShotTeam+'-'+smNum;if(!G.stats[k])G.stats[k]={pts:0,fouls:0,num:smNum,team:activeShotTeam};G.stats[k].pts+=pts;}
-    G.history.unshift({id:shot.id+'s',type:'score',team:activeShotTeam,pts,num:smNum,prevScore:prev,period:G.period});
-    renderScores();renderTable(activeShotTeam);autoScroll();
-    renderLog();renderUndo();
+  // 修正モードの場合
+  const confirmBtn=document.getElementById('sm-confirm');
+  const editId=confirmBtn&&confirmBtn.getAttribute('data-edit-id');
+  if(editId){
+    const shot=G.shots.find(s=>s.id===editId);
+    if(shot){
+      shot.made=smMade;shot.num=smNum||'';shot.type=smType||'';
+      // 自動スコアを更新（古いスコアを取り消して新しいスコアを追加）
+      G.history=G.history.filter(h=>h.id!==editId+'_s');
+      rebuildFromHistory();
+      const autoChk=document.getElementById('auto-score-chk');
+      if(shot.made&&autoChk&&autoChk.checked){
+        const pts=shot.zone==='three'?3:2;
+        applyAction({id:editId+'_s',type:'score',team:shot.team,pts,num:shot.num||null,prevScore:G.scores[shot.team],period:shot.period});
+      }
+    }
+    confirmBtn.removeAttribute('data-edit-id');
+    confirmBtn.textContent='✓ 記録';
+    renderShotMarkers();renderShotStats();closeShotModal();saveGame();return;
   }
-  renderShotMarkers();renderShotStats();
-  closeShotModal();saveGame();
+  try{
+    if(smMade===null){alert('⭕か✕を選んでください');return;}
+    initShotData();
+    const sid=Date.now().toString()+Math.random().toString(36).slice(2);
+    G.shots.push({id:sid,x:smX,y:smY,num:smNum||'',team:activeShotTeam,made:smMade,zone:smZone,type:smType||'',period:G.period});
+    // スコア自動反映
+    const autoChk=document.getElementById('auto-score-chk');
+    if(smMade&&autoChk&&autoChk.checked){
+      const pts=smZone==='three'?3:2;
+      applyAction({id:sid+'_s',type:'score',team:activeShotTeam,pts,num:smNum||null,prevScore:G.scores[activeShotTeam],period:G.period});
+    }
+    renderShotMarkers();renderShotStats();
+    closeShotModal();saveGame();
+  }catch(e){console.error('confirmShot error:',e);alert('エラー: '+e.message);}
 }
 
 // クイック入力
@@ -1015,6 +1031,32 @@ function renderShotMarkers(){
       </g>`;
     }
   }).join('');
+}
+
+
+// シュート修正（既存マーカーをタップ）
+function openShotEditModal(sid){
+  const shot=G.shots.find(s=>s.id===sid);
+  if(!shot)return;
+  // smの変数を流用
+  smX=shot.x;smY=shot.y;smMade=shot.made;smType=shot.type||'';smNum=shot.num||'';smZone=shot.zone||getZone(shot.x,shot.y);
+  activeShotTeam=shot.team;
+  // モーダルを開いてUIを設定
+  document.getElementById('sm-type-wrap').style.display=smZone==='key'?'block':'none';
+  document.getElementById('sm-zone').textContent=({key:'ゴール下 2P',three:'3ポイント',two:'2ポイント'})[smZone]+' ✏️修正中';
+  buildSmPG();
+  // 現在値を選択状態に
+  setTimeout(()=>{
+    smSetMade(shot.made);
+    if(shot.num)smSelNum(shot.num,'');
+    if(shot.type)smSetType(shot.type);
+  },50);
+  // 記録ボタンのテキストと動作を変更
+  const confirmBtn=document.getElementById('sm-confirm');
+  confirmBtn.style.background='#1a5fb4';
+  confirmBtn.textContent='✓ 更新';
+  confirmBtn.setAttribute('data-edit-id',sid);
+  document.getElementById('shot-modal').style.display='flex';
 }
 
 function deleteShotConfirm(id){
@@ -1099,27 +1141,51 @@ function renderFTList(){
 }
 function deleteFTSet(id){G.ftSets=G.ftSets.filter(s=>s.id!==id);renderFTList();renderShotStats();saveGame();}
 
+const TO_TYPES=[['pass','パスミス'],['dribble','ドリブル'],['catch','キャッチ'],['other','その他']];
+
 function renderTOSection(){
-  const el=document.getElementById('to-section');
-  if(!el)return;
   initShotData();
   const q=G.period;
-  el.innerHTML=['白','黒'].map(team=>{
-    const curTo=getQTO(team,q);
-    const totalTo=getQTO(team,0);
-    const bg=team==='白'?'#fff':'#111';
-    const fg=team==='白'?'#000':'#fff';
-    const sub=team==='白'?'#888':'#666';
-    return`<div style="flex:1;background:${bg};border:1px solid ${team==='白'?'#ccc':'#333'};border-radius:8px;padding:8px;text-align:center">
-      <div style="font-size:10px;color:${sub};margin-bottom:2px">${team}　<span style="color:#e8a020">Q${q}</span></div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
-        <button onclick="changeTo('${team}',-1)" style="width:28px;height:28px;border-radius:50%;background:#f0f0f0;color:#555;font-size:18px;font-weight:700;border:none;cursor:pointer">−</button>
-        <span style="font-family:monospace;font-size:24px;font-weight:700;color:${fg};min-width:28px;text-align:center">${curTo}</span>
-        <button onclick="changeTo('${team}',1)" style="width:28px;height:28px;border-radius:50%;background:#e8a020;color:#fff;font-size:18px;font-weight:700;border:none;cursor:pointer">＋</button>
-      </div>
-      <div style="font-size:10px;color:${sub};margin-top:2px">合計 ${totalTo}</div>
-    </div>`;
-  }).join('');
+  const qlbl=document.getElementById('to-q-lbl');
+  const total=document.getElementById('to-total-lbl');
+  if(qlbl)qlbl.textContent=q;
+  // TO記録リスト（現在チームの現在Q）
+  const toRecs=(G.toRecords||[]).filter(r=>r.team===activeShotTeam&&r.period===q);
+  const totalRecs=(G.toRecords||[]).filter(r=>r.team===activeShotTeam);
+  if(total)total.textContent=totalRecs.length;
+  // タイプボタン
+  const btnArea=document.getElementById('to-type-btns');
+  if(btnArea){
+    const tc=activeShotTeam==='白'?'#333':'#111';
+    const bg=activeShotTeam==='白'?'#fff':'#111';
+    const fg=activeShotTeam==='白'?'#333':'#ccc';
+    btnArea.innerHTML=TO_TYPES.map(([type,lbl])=>{
+      const cnt=toRecs.filter(r=>r.type===type).length;
+      return`<button onclick="addTO('${type}')" style="padding:8px 4px;background:${bg};border:1.5px solid ${activeShotTeam==='白'?'#ddd':'#444'};border-radius:8px;color:${fg};font-size:12px;font-weight:700;cursor:pointer">
+        ${lbl}<br><span style="font-size:18px;color:#e8a020;font-family:monospace">${cnt}</span>
+      </button>`;
+    }).join('');
+  }
+  // ログ
+  const logArea=document.getElementById('to-log');
+  if(logArea){
+    logArea.innerHTML=toRecs.reverse().slice(0,8).map(r=>{
+      const lbl=TO_TYPES.find(t=>t[0]===r.type);
+      return`<span onclick="deleteTO('${r.id}')" style="padding:3px 8px;background:#fff;border:1px solid #eee;border-radius:12px;font-size:11px;color:#555;cursor:pointer">${lbl?lbl[1]:r.type}${r.num?' #'+r.num:''} ×</span>`;
+    }).join('');
+  }
+}
+
+function addTO(type){
+  initShotData();
+  if(!G.toRecords)G.toRecords=[];
+  G.toRecords.push({id:Date.now().toString()+Math.random().toString(36).slice(2),team:activeShotTeam,type,num:null,period:G.period});
+  renderTOSection();renderShotStats();saveGame();
+}
+function deleteTO(id){
+  if(!G.toRecords)return;
+  G.toRecords=G.toRecords.filter(r=>r.id!==id);
+  renderTOSection();renderShotStats();saveGame();
 }
 
 
@@ -1605,7 +1671,7 @@ function showTab(t){
   });
   document.querySelectorAll('.gtab').forEach((b,i)=>b.classList.toggle('on',
     ['score','shot','roster','info'].indexOf(t)===i));
-  if(t==='shot'){setTimeout(()=>{initCourtEvents();renderShotMarkers();renderFTList();renderTOSection();renderShotStats();},50);}
+  if(t==='shot'){setTimeout(()=>{initCourtEvents();initShotData();if(!G.toRecords)G.toRecords=[];renderShotMarkers();renderFTList();renderTOSection();renderShotStats();},50);}
 }
 
 // ══ PDF ══
@@ -1714,37 +1780,57 @@ renderHome();
     <div style="background:#e5d9c0;padding:6px 6px 2px;text-align:center">
       <div style="font-size:10px;color:#999;margin-bottom:3px">タップ:記録 ／ 長押し:移動</div>
       <div id="court-wrap" style="position:relative;max-width:480px;margin:0 auto">
-        <svg id="court-svg" viewBox="0 0 300 260"
+        <svg id="court-svg" viewBox="0 0 280 265"
           style="width:100%;height:auto;display:block;touch-action:none;user-select:none">
-          <!-- コート背景 -->
-          <rect x="0" y="0" width="300" height="260" fill="#F5DEB3"/>
-          <rect x="3" y="3" width="294" height="254" fill="none" stroke="#444" stroke-width="1.5" rx="1"/>
-          <!-- ペイント -->
-          <rect x="108" y="194" width="84" height="62" fill="#FADADD" stroke="#444" stroke-width="1.5"/>
-          <!-- FTライン -->
-          <line x1="108" y1="194" x2="192" y2="194" stroke="#444" stroke-width="1.5"/>
-          <!-- FTサークル（上半分破線） -->
-          <path d="M108,194 A42,42 0 0 1 192,194" fill="none" stroke="#444" stroke-width="1.5" stroke-dasharray="4,3"/>
-          <path d="M108,194 A42,42 0 0 0 192,194" fill="none" stroke="#444" stroke-width="1.5"/>
-          <!-- リストリクテッド -->
-          <path d="M127,256 A23,23 0 0 1 173,256" fill="none" stroke="#666" stroke-width="1"/>
-          <!-- バックボード -->
-          <rect x="125" y="248" width="50" height="3" fill="none" stroke="#e74c3c" stroke-width="2.5"/>
-          <!-- リム -->
-          <circle cx="150" cy="243" r="8" fill="none" stroke="#e74c3c" stroke-width="2"/>
-          <!-- コーナー3P -->
-          <line x1="3" y1="175" x2="40" y2="175" stroke="#444" stroke-width="1.5"/>
-          <line x1="260" y1="175" x2="297" y2="175" stroke="#444" stroke-width="1.5"/>
-          <!-- 3Pアーク -->
-          <path d="M40,175 A127,127 0 0 1 260,175" fill="none" stroke="#444" stroke-width="1.5"/>
-          <!-- レーンマーク -->
-          <line x1="103" y1="213" x2="108" y2="213" stroke="#666" stroke-width="1"/>
-          <line x1="192" y1="213" x2="197" y2="213" stroke="#666" stroke-width="1"/>
-          <line x1="103" y1="228" x2="108" y2="228" stroke="#666" stroke-width="1"/>
-          <line x1="192" y1="228" x2="197" y2="228" stroke="#666" stroke-width="1"/>
-          <!-- 3Pラベル -->
-          <text x="150" y="155" text-anchor="middle" font-size="9" fill="#888">3P</text>
-          <text x="150" y="220" text-anchor="middle" font-size="8" fill="#c0736a">2P</text>
+          <!-- ═══ 正確なFIBAハーフコート (scale:18px/m) ═══ -->
+          <!-- コート全体 -->
+          <rect x="0" y="0" width="280" height="265" fill="#F5DEB3"/>
+          <!-- コート境界 -->
+          <rect x="5" y="5" width="270" height="253" fill="none" stroke="#333" stroke-width="1.5"/>
+          <!-- ミッドコートライン -->
+          <line x1="5" y1="5" x2="275" y2="5" stroke="#333" stroke-width="2"/>
+
+          <!-- ペイント/ランニングコース (4.9m×5.8m) -->
+          <rect x="96" y="154" width="88" height="104" fill="#FCE0D5" stroke="#333" stroke-width="1.5"/>
+
+          <!-- FTライン (baseline+5.8m=y154) -->
+          <line x1="96" y1="154" x2="184" y2="154" stroke="#333" stroke-width="1.5"/>
+
+          <!-- FTサークル (r=1.8m=32px, center at FT line) -->
+          <!-- 上半分（コート内側）：破線 -->
+          <path d="M108,154 A32,32 0 0 1 172,154" fill="none" stroke="#333" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <!-- 下半分（ペイント内）：実線 -->
+          <path d="M108,154 A32,32 0 0 0 172,154" fill="none" stroke="#333" stroke-width="1.5"/>
+
+          <!-- レーンマーク (3mと4m付近) -->
+          <line x1="91" y1="200" x2="96" y2="200" stroke="#555" stroke-width="1"/>
+          <line x1="184" y1="200" x2="189" y2="200" stroke="#555" stroke-width="1"/>
+          <line x1="91" y1="218" x2="96" y2="218" stroke="#555" stroke-width="1"/>
+          <line x1="184" y1="218" x2="189" y2="218" stroke="#555" stroke-width="1"/>
+
+          <!-- バックボード (1.83m=33px) -->
+          <rect x="124" y="254" width="32" height="3" fill="none" stroke="#333" stroke-width="2"/>
+
+          <!-- バスケット (r=0.45m=8px, center 1.575m=28px from baseline) -->
+          <circle cx="140" cy="230" r="8" fill="none" stroke="#e74c3c" stroke-width="2"/>
+
+          <!-- リストリクテッドエリア (r=1.25m=22px) -->
+          <path d="M118,230 A22,22 0 0 1 162,230" fill="none" stroke="#555" stroke-width="1.2"/>
+
+          <!-- 3Pコーナーライン (0.9m=16px from sideline) -->
+          <!-- 左コーナー: x=21, from baseline(258) to arc(203) -->
+          <line x1="21" y1="258" x2="21" y2="203" stroke="#333" stroke-width="1.5"/>
+          <!-- 右コーナー: x=259 -->
+          <line x1="259" y1="258" x2="259" y2="203" stroke="#333" stroke-width="1.5"/>
+
+          <!-- 3Pアーク (r=6.75m=122px, center=basket) -->
+          <!-- arc from (21,203) to (259,203), center (140,230) -->
+          <path d="M21,203 A122,122 0 0 0 259,203" fill="none" stroke="#333" stroke-width="1.5"/>
+
+          <!-- ゾーンラベル -->
+          <text x="140" y="135" text-anchor="middle" font-size="9" fill="#aaa">3P</text>
+          <text x="140" y="80" text-anchor="middle" font-size="9" fill="#aaa">3P</text>
+          <text x="140" y="215" text-anchor="middle" font-size="8" fill="#b06060">PAINT</text>
           <!-- シュートマーカー（JS追加） -->
           <g id="shot-markers"></g>
         </svg>
@@ -1771,10 +1857,14 @@ renderHome();
       <div id="ft-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
     </div>
 
-    <!-- ターンオーバー -->
+    <!-- ターンオーバー（タイプ別） -->
     <div style="padding:4px 10px 8px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:6px">⚠ ミス（TO）　<span style="font-size:10px;color:#888;font-weight:400">現在のQに記録</span></div>
-      <div id="to-section" style="display:flex;gap:8px"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:700">⚠ ミス（TO）　<span style="font-size:10px;color:#888;font-weight:400">Q<span id="to-q-lbl">1</span></span></div>
+        <div style="font-size:11px;color:#aaa">合計 <span id="to-total-lbl">0</span></div>
+      </div>
+      <div id="to-type-btns" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px"></div>
+      <div id="to-log" style="display:flex;flex-wrap:wrap;gap:4px"></div>
     </div>
 
     <!-- スタッツ -->
