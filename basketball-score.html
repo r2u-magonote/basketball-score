@@ -218,40 +218,46 @@ input{font-family:inherit}
   body{background:#fff;max-width:none;font-family:'Hiragino Kaku Gothic ProN','MS Gothic',sans-serif}
   #home-view,#game-view{display:none!important}
   #print-sheet{display:block!important}
-  @page{size:A4 landscape;margin:8mm}
+  @page{size:A4 landscape;margin:5mm}
 }
 #print-sheet{display:none}
-.ps{width:100%;font-size:9pt}
-.ps-title{text-align:center;font-size:12pt;font-weight:700;margin-bottom:3mm;border-bottom:1px solid #000;padding-bottom:1mm}
-.ps-info{display:flex;gap:6mm;margin-bottom:3mm;font-size:8pt}
-.ps-main{display:flex;gap:3mm}
-.ps-left{flex:0 0 58mm}
+.ps{width:100%;font-size:7pt}
+.ps-title{text-align:center;font-size:10pt;font-weight:700;margin-bottom:2mm;border-bottom:1px solid #000;padding-bottom:0.5mm}
+.ps-info{display:flex;gap:4mm;margin-bottom:2mm;font-size:7pt}
+.ps-main{display:flex;gap:2mm;align-items:flex-start}
+.ps-left{flex:0 0 auto;width:88mm}
+.ps-teams-row{display:flex;gap:2mm}
+.ps-team-col{flex:1;min-width:0}
 .ps-right{flex:1}
-.ps-tsec{margin-bottom:3mm;border:1px solid #000}
-.ps-thdr{padding:1mm 2mm;font-size:9pt;font-weight:700;display:flex;justify-content:space-between}
+.ps-tsec{margin-bottom:2mm;border:1px solid #000}
+.ps-thdr{padding:0.5mm 1.5mm;font-size:7.5pt;font-weight:700;display:flex;justify-content:space-between}
 .ps-thdr.wt{background:#ddd;color:#000}.ps-thdr.bk{background:#333;color:#fff}
-.ps-ptbl{width:100%;border-collapse:collapse;font-size:7.5pt}
-.ps-ptbl th{border:1px solid #999;padding:.5mm 1mm;background:#f0f0f0;text-align:center}
-.ps-ptbl td{border:1px solid #ccc;padding:.5mm 1mm;text-align:center}
-.ps-ptbl td.nc{text-align:left}
-.ps-sgrid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #000}
-.ps-scol{border-right:1px solid #666}.ps-scol:last-child{border-right:none}
-.ps-shdr{display:flex;border-bottom:1px solid #999;font-size:6.5pt;font-weight:700}
-.ps-shdr-n{width:14pt;text-align:center;border-right:1px solid #bbb;background:#f0f0f0}
+.ps-ptbl{width:100%;border-collapse:collapse;font-size:6pt}
+.ps-ptbl th{border:1px solid #999;padding:0.3mm 0.8mm;background:#f0f0f0;text-align:center}
+.ps-ptbl td{border:1px solid #ccc;padding:0.3mm 0.8mm;text-align:center;line-height:1.2}
+.ps-ptbl td.nc{text-align:left;max-width:18mm;overflow:hidden;white-space:nowrap}
+.ps-tf{padding:0.5mm 1mm}
+.ps-tf-lbl{font-size:6pt;font-weight:700;background:#f0f0f0;padding:0.3mm 1mm;border-top:1px solid #ccc}
+.ps-tf-row{display:flex;align-items:center;gap:0.5mm;padding:0.3mm 1mm;font-size:5.5pt;border-top:1px solid #eee}
+.ps-tf-q{color:#888;min-width:10pt}
+.ps-sgrid{display:grid;border:1px solid #000}
+.ps-scol{border-right:1px solid #555}.ps-scol:last-child{border-right:none}
+.ps-shdr{display:flex;border-bottom:1px solid #999;font-size:5.5pt;font-weight:700}
+.ps-shdr-n{width:12pt;text-align:center;border-right:1px solid #bbb;background:#f0f0f0;flex-shrink:0}
 .ps-shdr-w{flex:1;text-align:center;border-right:1px solid #bbb;background:#eee}
 .ps-shdr-b{flex:1;text-align:center;background:#333;color:#fff}
-.ps-srow{display:flex;border-bottom:1px solid #f0f0f0;height:8pt;align-items:center}
-.ps-srow:nth-child(5n){border-bottom:1px solid #ccc}
-.ps-n{width:14pt;text-align:right;padding-right:1pt;font-size:6.5pt;color:#888;flex-shrink:0;border-right:1px solid #e0e0e0}
-.ps-w{flex:1;display:flex;align-items:center;justify-content:center;font-size:6.5pt;font-weight:700;border-right:1px solid #e0e0e0;height:100%}
-.ps-b{flex:1;display:flex;align-items:center;justify-content:center;font-size:6.5pt;font-weight:700;height:100%}
+.ps-srow{display:flex;border-bottom:1px solid #f5f5f5;height:7pt;align-items:center}
+.ps-srow:nth-child(5n){border-bottom:1px solid #ddd}
+.ps-n{width:12pt;text-align:right;padding-right:1pt;font-size:5.5pt;color:#aaa;flex-shrink:0;border-right:1px solid #e8e8e8}
+.ps-w{flex:1;display:flex;align-items:center;justify-content:center;font-size:5.5pt;font-weight:700;border-right:1px solid #e8e8e8;height:100%}
+.ps-b{flex:1;display:flex;align-items:center;justify-content:center;font-size:5.5pt;font-weight:700;height:100%}
 .sc-w{background:#888;color:#fff}.sc-b{background:#333;color:#fff}
 .cur-w,.cur-b{background:#e8a020!important;color:#fff}
-.ps-footer{margin-top:3mm;border:1px solid #000;padding:2mm}
-.ps-qtbl{width:100%;border-collapse:collapse;font-size:8pt}
-.ps-qtbl th,.ps-qtbl td{border:1px solid #999;padding:1mm 2mm;text-align:center}
+.ps-footer{margin-top:2mm;border:1px solid #000;padding:1.5mm;display:flex;gap:4mm;align-items:center}
+.ps-qtbl{flex:1;border-collapse:collapse;font-size:7pt}
+.ps-qtbl th,.ps-qtbl td{border:1px solid #999;padding:0.5mm 1.5mm;text-align:center}
 .ps-qtbl th{background:#f0f0f0;font-weight:700}
-.ps-final{font-size:13pt;font-weight:700;text-align:center;margin-top:2mm}
+.ps-final{font-size:12pt;font-weight:700;text-align:center;white-space:nowrap;padding:0 4mm}
 </style>
 </head>
 <body>
@@ -1013,57 +1019,80 @@ function showTab(t){
 
 // ══ PDF ══
 function printSheet(){
-  const maxScore=Math.max(G.scores['白'],G.scores['黒'],10);
+  const maxScore=Math.max(G.scores['白'],G.scores['黒'],20);
+  // ランニングスコアは実際のスコア+5までに絞る（最大150）
+  const maxShow=Math.min(150, maxScore+5);
+  const colSize=Math.ceil(maxShow/4); // 4列で表示
+  const groups=[];
+  for(let i=0;i<4;i++){
+    const s=i*colSize+1, e=Math.min((i+1)*colSize,maxShow);
+    if(s<=maxShow)groups.push([s,e]);
+  }
+
   function makeGrid(){
-    return`<div class="ps-sgrid">${[[1,50],[51,100],[101,150]].map(([a,b])=>`
+    const gridCols=groups.length;
+    return`<div class="ps-sgrid" style="grid-template-columns:repeat(${gridCols},1fr)">${groups.map(([a,b])=>`
       <div class="ps-scol">
         <div class="ps-shdr"><div class="ps-shdr-n">#</div><div class="ps-shdr-w">白</div><div class="ps-shdr-b">黒</div></div>
         ${Array.from({length:b-a+1},(_,i)=>a+i).map(n=>{
           const w=G.grid['白'][n],bk=G.grid['黒'][n];
-          return`<div class="ps-srow" style="${n>maxScore+5?'opacity:.1':''}">
+          return`<div class="ps-srow">
             <div class="ps-n">${n}</div>
             <div class="ps-w ${n===G.scores['白']?'cur-w':w!==undefined?'sc-w':''}">${w||''}</div>
             <div class="ps-b ${n===G.scores['黒']?'cur-b':bk!==undefined?'sc-b':''}">${bk||''}</div>
           </div>`;
-        }).join('')}
-      </div>`).join('')}</div>`;
+        }).join('')}</div>`).join('')}</div>`;
   }
+
+  function makeDots(count){
+    if(!count)return'<span style="color:#ccc">—</span>';
+    return Array.from({length:count},(_,i)=>{
+      const n=i+1;
+      return n%2===1
+        ?`<span style="display:inline-block;width:10pt;height:10pt;border-radius:50%;border:1.5pt solid #e74c3c;color:#e74c3c;font-size:5pt;font-weight:700;text-align:center;line-height:8pt;margin:0 0.5pt">${n}</span>`
+        :`<span style="display:inline-block;width:10pt;height:10pt;border-radius:50%;background:#222;color:#fff;font-size:5pt;font-weight:700;text-align:center;line-height:10pt;margin:0 0.5pt">${n}</span>`;
+    }).join('');
+  }
+
   function makeTable(team){
     const color=team==='白'?'wt':'bk';
     const rows=G.roster[team].length?G.roster[team].map(p=>{
       const k=team+'-'+p.num;const st=G.stats[k]||{pts:0,fouls:0};
-      return`<tr><td>${p.num}</td><td class="nc">${p.name||''}</td><td>${st.pts||0}</td><td style="${st.fouls>=5?'color:#e74c3c':st.fouls>=3?'color:#e8a020':''}">${st.fouls||''}</td></tr>`;
-    }).join(''):`<tr><td colspan="4" style="text-align:center;color:#999">なし</td></tr>`;
-    // Qごとのチームファウル表（赤黒交互表記）
-    const foulQRows=[1,2,3,4].map(q=>{
-      const f=getQFouls(team,q);
-      // 赤=奇数 黒塗り=偶数
-      const dots=f>0?Array.from({length:f},(_,i)=>{
-        const n=i+1;
-        return n%2===1
-          ?`<span style="display:inline-block;width:12pt;height:12pt;border-radius:50%;border:1.5pt solid #e74c3c;color:#e74c3c;font-size:6pt;font-weight:700;text-align:center;line-height:10pt;margin:0 1pt">${n}</span>`
-          :`<span style="display:inline-block;width:12pt;height:12pt;border-radius:50%;background:#222;color:#fff;font-size:6pt;font-weight:700;text-align:center;line-height:12pt;margin:0 1pt;text-decoration:line-through">${n}</span>`;
-      }).join(''):`<span style="color:#ccc;font-size:7pt">—</span>`;
-      return`<tr><td style="font-size:7pt;color:#888;border:1px solid #ddd;padding:1mm 1mm;text-align:center;width:8mm">Q${q}</td><td style="border:1px solid #ddd;padding:1mm 2mm">${dots}</td></tr>`;
-    }).join('');
-    return`<div class="ps-tsec"><div class="ps-thdr ${color}">${G.teamNames[team]}　計 ${G.scores[team]}点</div>
-      <table class="ps-ptbl"><thead><tr><th>#</th><th>選手名</th><th>得点</th><th>F</th></tr></thead><tbody>${rows}</tbody></table>
-      <div style="padding:1mm 2mm;font-size:7.5pt;font-weight:700;background:#f5f5f5;border-top:1px solid #ccc">チームファウル</div>
-      <table style="width:100%;border-collapse:collapse;font-size:7pt">${foulQRows}</table>
-      </div>`;
+      const fc=st.fouls>=5?'color:#e74c3c':st.fouls>=3?'color:#e8a020':'';
+      return`<tr><td>${p.num}</td><td class="nc">${p.name||''}</td><td>${st.pts||0}</td><td style="${fc}">${st.fouls||''}</td></tr>`;
+    }).join(''):`<tr><td colspan="4" style="text-align:center;color:#999;font-size:5.5pt">なし</td></tr>`;
+    const tfRows=[1,2,3,4].map(q=>`
+      <div class="ps-tf-row"><span class="ps-tf-q">Q${q}</span>${makeDots(getQFouls(team,q))}</div>`).join('');
+    return`<div class="ps-tsec">
+      <div class="ps-thdr ${color}">${G.teamNames[team]}　${G.scores[team]}点</div>
+      <table class="ps-ptbl"><thead><tr><th>#</th><th>名前</th><th>点</th><th>F</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="ps-tf-lbl">チームファウル</div>${tfRows}
+    </div>`;
   }
+
   const qRows=['白','黒'].map(team=>{
     const cells=[1,2,3,4].map(q=>{
-      const p=getQPts(team,q);
-      const f=getQFouls(team,q);
-      return`<td><div style="${p>0?'font-weight:700':'color:#ccc'}">${p||'—'}</div><div style="font-size:6.5pt;color:#999">${f?'F:'+f:''}</div></td>`;
+      const p=getQPts(team,q);const f=getQFouls(team,q);
+      return`<td style="${p>0?'font-weight:700':'color:#ccc'}">${p||'—'}${f?'<br><span style="font-size:5.5pt;color:#999">F'+f+'</span>':''}</td>`;
     }).join('');
     return`<tr><th>${G.teamNames[team]}</th>${cells}<td><b>${G.scores[team]}</b></td></tr>`;
   }).join('');
+
   document.getElementById('print-sheet').innerHTML=`<div class="ps">
     <div class="ps-title">${G.gameTitle||'バスケットボール スコアシート'}</div>
-    <div class="ps-info"><span>日時: ${G.gameDate||''}</span><span>${G.teamNames['白']} vs ${G.teamNames['黒']}</span></div>
-    <div class="ps-main"><div class="ps-left">${makeTable('白')}${makeTable('黒')}</div><div class="ps-right">${makeGrid()}</div></div>
+    <div class="ps-info">
+      <span>日時: ${G.gameDate||''}</span>
+      <span>${G.teamNames['白']} vs ${G.teamNames['黒']}</span>
+    </div>
+    <div class="ps-main">
+      <div class="ps-left">
+        <div class="ps-teams-row">
+          <div class="ps-team-col">${makeTable('白')}</div>
+          <div class="ps-team-col">${makeTable('黒')}</div>
+        </div>
+      </div>
+      <div class="ps-right">${makeGrid()}</div>
+    </div>
     <div class="ps-footer">
       <table class="ps-qtbl"><thead><tr><th>チーム</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>合計</th></tr></thead><tbody>${qRows}</tbody></table>
       <div class="ps-final">${G.teamNames['白']} ${G.scores['白']} — ${G.scores['黒']} ${G.teamNames['黒']}</div>
