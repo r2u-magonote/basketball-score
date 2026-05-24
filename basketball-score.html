@@ -799,16 +799,29 @@ function tapTO(team,half,idx){
 let activeShotTeam='白';
 let smMade=null,smType=null,smNum=null,smX=0,smY=0,smZone='';
 let ftNum=null,ftShots=[null,null];
+// ドラッグ
+let dragShotId=null,dragActive=false,dragTimer=null;
 
 function initShotData(){
   if(!G.shots)G.shots=[];
   if(!G.ftSets)G.ftSets=[];
-  // TOをQごと管理 {白:{1:0,2:0,3:0,4:0,5:0}, 黒:{...}}
   if(!G.turnovers||typeof G.turnovers['白']==='number'){
     const old={'白':G.turnovers?G.turnovers['白']||0:0,'黒':G.turnovers?G.turnovers['黒']||0:0};
     G.turnovers={'白':{1:old['白'],2:0,3:0,4:0,5:0},'黒':{1:old['黒'],2:0,3:0,4:0,5:0}};
   }
   ['白','黒'].forEach(t=>{if(!G.turnovers[t])G.turnovers[t]={1:0,2:0,3:0,4:0,5:0};});
+}
+
+function getQTO(team,q){
+  initShotData();
+  if(!q)return Object.values(G.turnovers[team]).reduce((a,v)=>a+v,0);
+  return G.turnovers[team][q]||0;
+}
+function changeTo(team,d){
+  initShotData();
+  const q=G.period;
+  G.turnovers[team][q]=Math.max(0,(G.turnovers[team][q]||0)+d);
+  renderTOSection();renderShotStats();saveGame();
 }
 
 function setShotTeam(team){
@@ -818,49 +831,105 @@ function setShotTeam(team){
   renderShotMarkers();renderFTList();renderTOSection();renderShotStats();
 }
 
-// コートタップ（マウス）
-function courtTap(e){
-  if(e.type==='click'&&e.target.closest('#shot-markers'))return;
-  const svg=document.getElementById('court-svg');
-  const r=svg.getBoundingClientRect();
-  const sx=(e.clientX-r.left)*300/r.width;
-  const sy=(e.clientY-r.top)*260/r.height;
-  openShotModal(sx,sy);
-}
-// タッチ対応
-function courtTouchEnd(e){
-  e.preventDefault();
-  const t=e.changedTouches[0];
-  const svg=document.getElementById('court-svg');
-  const r=svg.getBoundingClientRect();
-  const sx=(t.clientX-r.left)*300/r.width;
-  const sy=(t.clientY-r.top)*260/r.height;
-  openShotModal(sx,sy);
-}
-
+// コート座標ゾーン判定
 function getZone(x,y){
-  // ペイント内
   if(x>=108&&x<=192&&y>=194)return'key';
-  // 3P（アーク外またはコーナー）
   const dx=x-150,dy=y-243;
   const d=Math.sqrt(dx*dx+dy*dy);
   if(d>127||(y>175&&(x<40||x>260)))return'three';
   return'two';
 }
 
+// イベント設定（showTab後に呼ぶ）
+function initCourtEvents(){
+  const svg=document.getElementById('court-svg');
+  if(!svg||svg._eventsInited)return;
+  svg._eventsInited=true;
+
+  // タッチ開始
+  svg.addEventListener('touchstart',function(e){
+    const touch=e.changedTouches[0];
+    const r=svg.getBoundingClientRect();
+    const sx=(touch.clientX-r.left)*300/r.width;
+    const sy=(touch.clientY-r.top)*260/r.height;
+    // マーカーの長押し判定
+    const marker=e.target.closest('[data-sid]');
+    if(marker){
+      dragShotId=marker.dataset.sid;
+      dragActive=false;
+      dragTimer=setTimeout(()=>{
+        dragActive=true;
+        // 長押しフィードバック
+        const el=document.getElementById('dm-'+dragShotId);
+        if(el)el.style.opacity='0.5';
+      },500);
+    }else{
+      dragShotId=null;
+      dragTimer=setTimeout(()=>{
+        // 長押しなしの場合はtouchendで処理
+      },0);
+    }
+  },{passive:true});
+
+  // タッチ移動（ドラッグ）
+  svg.addEventListener('touchmove',function(e){
+    if(!dragActive||!dragShotId)return;
+    e.preventDefault();
+    const touch=e.changedTouches[0];
+    const r=svg.getBoundingClientRect();
+    const sx=Math.max(5,Math.min(295,(touch.clientX-r.left)*300/r.width));
+    const sy=Math.max(5,Math.min(255,(touch.clientY-r.top)*260/r.height));
+    // 仮のマーカー移動
+    const shot=G.shots.find(s=>s.id===dragShotId);
+    if(shot){shot._dx=sx;shot._dy=sy;renderShotMarkers();}
+  },{passive:false});
+
+  // タッチ終了
+  svg.addEventListener('touchend',function(e){
+    clearTimeout(dragTimer);
+    e.preventDefault();
+    const touch=e.changedTouches[0];
+    const r=svg.getBoundingClientRect();
+    const sx=Math.max(5,Math.min(295,(touch.clientX-r.left)*300/r.width));
+    const sy=Math.max(5,Math.min(255,(touch.clientY-r.top)*260/r.height));
+
+    if(dragActive&&dragShotId){
+      // ドラッグ確定
+      const shot=G.shots.find(s=>s.id===dragShotId);
+      if(shot){shot.x=sx;shot.y=sy;shot.zone=getZone(sx,sy);delete shot._dx;delete shot._dy;}
+      renderShotMarkers();saveGame();
+    }else if(!dragShotId){
+      // 新規シュート
+      openShotModal(sx,sy);
+    }
+    dragShotId=null;dragActive=false;
+  },{passive:false});
+
+  // マウスクリック（PC用）
+  svg.addEventListener('click',function(e){
+    if(dragActive)return;
+    const marker=e.target.closest('[data-sid]');
+    if(marker){deleteShotConfirm(marker.dataset.sid);return;}
+    const r=svg.getBoundingClientRect();
+    const sx=(e.clientX-r.left)*300/r.width;
+    const sy=(e.clientY-r.top)*260/r.height;
+    openShotModal(sx,sy);
+  });
+}
+
+// シュートモーダルを開く
 function openShotModal(x,y){
   initShotData();
   smX=x;smY=y;smMade=null;smType=null;smNum=null;
   smZone=getZone(x,y);
-  // リセット
   document.getElementById('sm-made-btn').style.cssText='flex:1;padding:16px;border-radius:12px;font-size:28px;border:3px solid #ddd;background:#f8f8f8';
   document.getElementById('sm-miss-btn').style.cssText='flex:1;padding:16px;border-radius:12px;font-size:28px;border:3px solid #ddd;background:#f8f8f8';
   document.querySelectorAll('.sm-type-btn').forEach(b=>b.classList.remove('on'));
-  document.getElementById('sm-type-wrap').style.display=smZone==='key'?'block':'none';
-  const zLabel={'key':'ゴール下','three':'3ポイント','two':'2ポイント'};
-  document.getElementById('sm-zone').textContent=zLabel[smZone];
+  const isKey=smZone==='key';
+  document.getElementById('sm-type-wrap').style.display=isKey?'block':'none';
+  const zPts=smZone==='three'?'3P':'2P';
+  document.getElementById('sm-zone').textContent=({key:'ゴール下 2P',three:'3ポイント',two:'2ポイント'})[smZone];
   document.getElementById('sm-confirm').style.background='#ccc';
-  // 選手グリッド
   buildSmPG();
   document.getElementById('shot-modal').style.display='flex';
 }
@@ -868,24 +937,25 @@ function openShotModal(x,y){
 function buildSmPG(){
   const pg=document.getElementById('sm-pg');
   const roster=G.roster[activeShotTeam]||[];
-  if(!roster.length){pg.innerHTML='<div style="color:#aaa;font-size:12px;grid-column:1/-1;padding:4px 0">選手登録なし（背番号なしで記録可）</div>';return;}
-  pg.innerHTML=roster.map(p=>`<button class="sm-pg-btn" onclick="smSelNum('${p.num}')">${p.num}<div style="font-size:9px;color:#888;margin-top:1px">${(p.name||'').slice(0,3)}</div></button>`).join('');
+  if(!roster.length){pg.innerHTML='<div style="color:#aaa;font-size:11px;grid-column:1/-1;padding:4px 0">選手登録なし</div>';return;}
+  pg.innerHTML=roster.map(p=>`<button class="sm-pg-btn" onclick="smSelNum('${p.num}','${p.name||''}')">${p.num}<div style="font-size:8px;color:#888;margin-top:1px">${(p.name||'').slice(0,3)}</div></button>`).join('');
 }
-function smSelNum(n){
-  smNum=n===smNum?null:n;
-  document.querySelectorAll('.sm-pg-btn').forEach(b=>b.classList.toggle('on',b.textContent.trim().startsWith(n)&&b.textContent.trim().replace(/[\s\S]*?(\d+).*/,'$1')===n));
-  // simpler
-  document.querySelectorAll('.sm-pg-btn').forEach(b=>{b.classList.toggle('on',smNum&&b.querySelector('div')&&b.textContent.startsWith(n));});
+function smSelNum(n,name){
+  smNum=n;
+  document.querySelectorAll('.sm-pg-btn').forEach(b=>b.classList.toggle('on',b.textContent.startsWith(n)));
 }
 function smSetMade(v){
   smMade=v;
   document.getElementById('sm-made-btn').style.cssText='flex:1;padding:16px;border-radius:12px;font-size:28px;border:3px solid '+(v?'#27ae60':'#ddd')+';background:'+(v?'#e8f5e9':'#f8f8f8');
   document.getElementById('sm-miss-btn').style.cssText='flex:1;padding:16px;border-radius:12px;font-size:28px;border:3px solid '+(!v?'#e74c3c':'#ddd')+';background:'+(!v?'#fdecea':'#f8f8f8');
-  document.getElementById('sm-confirm').style.background=smMade!==null?'#333':'#ccc';
+  document.getElementById('sm-confirm').style.background='#333';
 }
 function smSetType(t){
   smType=t;
-  document.querySelectorAll('.sm-type-btn').forEach(b=>b.classList.toggle('on',b.onclick.toString().includes("'"+t+"'")));
+  document.querySelectorAll('.sm-type-btn').forEach(b=>{
+    const match=b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+t+"'");
+    b.classList.toggle('on',match);
+  });
 }
 function closeShotModal(){document.getElementById('shot-modal').style.display='none';}
 function confirmShot(){
@@ -897,8 +967,30 @@ function confirmShot(){
     made:smMade,zone:smZone,type:smType||'',period:G.period
   };
   G.shots.push(shot);
+  // スコア自動反映
+  const autoChk=document.getElementById('auto-score-chk');
+  if(smMade&&autoChk&&autoChk.checked){
+    const pts=smZone==='three'?3:2;
+    const prev=G.scores[activeShotTeam];
+    const lbl=smNum||'-';
+    G.scores[activeShotTeam]=prev+pts;
+    for(let i=prev+1;i<=prev+pts;i++){G.grid[activeShotTeam][i]=lbl;updateCell(activeShotTeam,i);}
+    if(prev>0)updateCell(activeShotTeam,prev);
+    if(smNum){const k=activeShotTeam+'-'+smNum;if(!G.stats[k])G.stats[k]={pts:0,fouls:0,num:smNum,team:activeShotTeam};G.stats[k].pts+=pts;}
+    G.history.unshift({id:shot.id+'s',type:'score',team:activeShotTeam,pts,num:smNum,prevScore:prev,period:G.period});
+    renderScores();renderTable(activeShotTeam);autoScroll();
+    renderLog();renderUndo();
+  }
   renderShotMarkers();renderShotStats();
   closeShotModal();saveGame();
+}
+
+// クイック入力
+function quickScore(pts){
+  openModal(activeShotTeam,pts);
+}
+function quickFoul(){
+  openFoul(activeShotTeam);
 }
 
 // マーカー描画
@@ -906,25 +998,41 @@ function renderShotMarkers(){
   const g=document.getElementById('shot-markers');
   if(!g||!G.shots)return;
   const shots=G.shots.filter(s=>s.team===activeShotTeam);
-  const wColor='#3B8AFF',bColor='#333';
-  const tc=activeShotTeam==='白'?wColor:bColor;
+  const tc=activeShotTeam==='白'?'#1a5fb4':'#111';
   g.innerHTML=shots.map(s=>{
+    const x=s._dx||s.x, y=s._dy||s.y;
     const lbl=s.num||'●';
+    const isDragged=s._dx!==undefined;
     if(s.made){
-      return`<g onclick="deleteShotConfirm('${s.id}')" style="cursor:pointer">
-        <circle cx="${s.x}" cy="${s.y}" r="11" fill="${tc}" opacity=".85"/>
-        <text x="${s.x}" y="${s.y}" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="700" fill="#fff">${lbl}</text>
+      return`<g data-sid="${s.id}" id="dm-${s.id}" style="cursor:pointer${isDragged?';opacity:.7':''}">
+        <circle cx="${x}" cy="${y}" r="12" fill="${tc}" stroke="#fff" stroke-width="1.5" opacity=".9"/>
+        <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="700" fill="#fff">${lbl}</text>
       </g>`;
     }else{
-      return`<g onclick="deleteShotConfirm('${s.id}')" style="cursor:pointer">
-        <circle cx="${s.x}" cy="${s.y}" r="9" fill="none" stroke="${tc}" stroke-width="1.5" opacity=".6"/>
-        <text x="${s.x}" y="${s.y}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${tc}" opacity=".7">${lbl}</text>
+      return`<g data-sid="${s.id}" id="dm-${s.id}" style="cursor:pointer${isDragged?';opacity:.7':''}">
+        <circle cx="${x}" cy="${y}" r="10" fill="rgba(255,255,255,0.7)" stroke="${tc}" stroke-width="2" opacity=".8"/>
+        <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${tc}" opacity=".9">${lbl}</text>
       </g>`;
     }
   }).join('');
 }
+
 function deleteShotConfirm(id){
   if(!confirm('このシュートを削除しますか？'))return;
+  const shot=G.shots.find(s=>s.id===id);
+  if(shot&&shot.made){
+    // スコアから自動反映分を取り消すか確認
+    const autoChk=document.getElementById('auto-score-chk');
+    if(autoChk&&autoChk.checked){
+      const pts=shot.zone==='three'?3:2;
+      G.scores[shot.team]=Math.max(0,G.scores[shot.team]-pts);
+      rebuildFromHistory();
+      // historyから対応するスコアも削除
+      G.history=G.history.filter(h=>h.id!==shot.id+'s');
+      rebuildFromHistory();
+      refreshAllUI();
+    }
+  }
   G.shots=G.shots.filter(s=>s.id!==id);
   renderShotMarkers();renderShotStats();saveGame();
 }
@@ -959,6 +1067,20 @@ function confirmFT(){
   if(!shots.length){closeFTModal();return;}
   G.ftSets.push({id:Date.now().toString()+Math.random().toString(36).slice(2),
     team:activeShotTeam,num:ftNum||'',shots:ftShots.filter(s=>s!==null),period:G.period});
+  // FTスコア自動反映
+  const autoChk=document.getElementById('auto-score-chk');
+  if(autoChk&&autoChk.checked){
+    const made=ftShots.filter(s=>s===true).length;
+    if(made>0){
+      const prev=G.scores[activeShotTeam];
+      const lbl=ftNum||'-';
+      G.scores[activeShotTeam]=prev+made;
+      for(let i=prev+1;i<=prev+made;i++){G.grid[activeShotTeam][i]=lbl;updateCell(activeShotTeam,i);}
+      if(ftNum){const k=activeShotTeam+'-'+ftNum;if(!G.stats[k])G.stats[k]={pts:0,fouls:0,num:ftNum,team:activeShotTeam};G.stats[k].pts+=made;}
+      G.history.unshift({id:Date.now().toString(),type:'score',team:activeShotTeam,pts:made,num:ftNum,prevScore:prev,period:G.period});
+      renderScores();renderTable(activeShotTeam);autoScroll();renderLog();renderUndo();
+    }
+  }
   renderFTList();renderShotStats();closeFTModal();saveGame();
 }
 
@@ -967,7 +1089,7 @@ function renderFTList(){
   if(!el||!G.ftSets)return;
   const sets=G.ftSets.filter(s=>s.team===activeShotTeam);
   if(!sets.length){el.innerHTML='<div style="color:#bbb;font-size:12px;padding:4px 0">まだ記録なし</div>';return;}
-  el.innerHTML=sets.map((s,i)=>`
+  el.innerHTML=sets.map(s=>`
     <div class="ft-set-card">
       ${s.num?`<span style="font-family:monospace;font-weight:700;font-size:13px">#${s.num}</span>`:''}
       ${s.shots.map(m=>`<div class="ft-shot-dot ${m?'made':'miss'}">${m?'○':'×'}</div>`).join('')}
@@ -999,107 +1121,7 @@ function renderTOSection(){
     </div>`;
   }).join('');
 }
-function getQTO(team,q){
-  initShotData();
-  if(!q)return Object.values(G.turnovers[team]).reduce((a,v)=>a+v,0);
-  return G.turnovers[team][q]||0;
-}
-function changeTo(team,d){
-  initShotData();
-  const q=G.period;
-  G.turnovers[team][q]=Math.max(0,(G.turnovers[team][q]||0)+d);
-  renderTOSection();renderShotStats();saveGame();
-}
 
-// ── Qごと＋全体のスタッツ ──
-function calcStats(team, q){
-  initShotData();
-  const shots=G.shots.filter(s=>s.team===team&&(q?s.period===q:true));
-  const ftSets=G.ftSets.filter(s=>s.team===team&&(q?s.period===q:true));
-  const fgMade=shots.filter(s=>s.made).length;
-  const fgAtt=shots.length;
-  const threeMade=shots.filter(s=>s.made&&s.zone==='three').length;
-  const threeAtt=shots.filter(s=>s.zone==='three').length;
-  const twoMade=shots.filter(s=>s.made&&s.zone!=='three').length;
-  const twoAtt=shots.filter(s=>s.zone!=='three').length;
-  const ftMade=ftSets.reduce((a,s)=>a+s.shots.filter(Boolean).length,0);
-  const ftAtt=ftSets.reduce((a,s)=>a+s.shots.length,0);
-  const ftSetCnt=ftSets.length;
-  const to=getQTO(team,q);
-  const poss=fgAtt+ftSetCnt+to||0;
-  const pts=q?getQPts(team,q):G.scores[team]||0;
-  const eff=poss>0?(pts/poss).toFixed(2):'—';
-  const fgPct=fgAtt?Math.round(fgMade/fgAtt*100):'—';
-  const threePct=threeAtt?Math.round(threeMade/threeAtt*100):'—';
-  const ftPct=ftAtt?Math.round(ftMade/ftAtt*100):'—';
-  // ゴール下内訳
-  const under={};
-  ['fastbreak','layup','drive','rebound'].forEach(t=>{
-    under[t]={m:shots.filter(s=>s.made&&s.type===t).length,a:shots.filter(s=>s.type===t).length};
-  });
-  return{fgMade,fgAtt,fgPct,threeMade,threeAtt,threePct,twoMade,twoAtt,ftMade,ftAtt,ftPct,ftSetCnt,to,poss,pts,eff,under};
-}
-
-function renderShotStats(){
-  const el=document.getElementById('shot-stats-area');
-  if(!el)return;
-  initShotData();
-  const qs=[1,2,3,4,5].filter(q=>G.history.some(a=>a.period===q)||getQTO('白',q)||getQTO('黒',q)||G.shots.some(s=>s.period===q)||G.ftSets.some(s=>s.period===q));
-  const cols=[...qs.map(q=>({label:'Q'+q,q})),{label:'合計',q:0}];
-  
-  const html=['白','黒'].map(team=>{
-    const bg=team==='白'?'#fff':'#111';
-    const fg=team==='白'?'#000':'#fff';
-    const mu=team==='白'?'#999':'#555';
-    const hbg=team==='白'?'#f0f0f0':'#000';
-    const acol=team==='白'?'#1a5fb4':'#e8a020';
-    
-    const thCols=cols.map(col=>`<th style="padding:3px 6px;font-size:10px;font-weight:700;color:${col.q===0?acol:fg};background:${hbg};border-bottom:1px solid ${team==='白'?'#ddd':'#222'};white-space:nowrap">${col.label}</th>`).join('');
-    
-    function row(label, fn, highlight){
-      const cells=cols.map(col=>{
-        const v=fn(calcStats(team,col.q));
-        return`<td style="padding:3px 6px;font-size:11px;text-align:center;color:${col.q===0?(highlight||fg):fg};${col.q===0?'font-weight:700':''};border-bottom:1px solid ${team==='白'?'#f5f5f5':'#1a1a1a'}">${v}</td>`;
-      }).join('');
-      return`<tr><th style="padding:3px 8px;font-size:10px;color:${mu};font-weight:400;text-align:left;background:${bg};border-bottom:1px solid ${team==='白'?'#f5f5f5':'#1a1a1a'};white-space:nowrap">${label}</th>${cells}</tr>`;
-    }
-    
-    const pct=(m,a)=>a?m+'/'+a+' '+Math.round(m/a*100)+'%':m?m+'/'+a:'—';
-    
-    // ゴール下ラベル
-    const underLabels={fastbreak:'速攻',layup:'レイアップ',drive:'ドライブ',rebound:'リバウンド'};
-    const underRows=Object.entries(underLabels).map(([type,lbl])=>
-      row('　'+lbl, st=>st.under[type].a?st.under[type].m+'/'+st.under[type].a:'—')
-    ).join('');
-    
-    return`<div style="background:${bg};border-bottom:2px solid ${team==='白'?'#ccc':'#000'}">
-      <div style="padding:5px 8px;font-size:11px;font-weight:700;color:${fg};background:${hbg};border-bottom:1px solid ${team==='白'?'#ddd':'#222'}">${team}チーム</div>
-      <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;min-width:200px">
-        <thead><tr><th style="padding:3px 8px;background:${hbg};border-bottom:1px solid ${team==='白'?'#ddd':'#222'}"></th>${thCols}</tr></thead>
-        <tbody>
-          ${row('FG', st=>pct(st.fgMade,st.fgAtt))}
-          ${row('2P', st=>pct(st.twoMade,st.twoAtt))}
-          ${row('3P', st=>pct(st.threeMade,st.threeAtt))}
-          ${row('ゴール下', st=>pct(st.fgMade-st.threeMade,st.fgAtt-st.threeAtt))}
-          ${underRows}
-          ${row('FT', st=>st.ftAtt?st.ftMade+'/'+st.ftAtt+' '+Math.round(st.ftMade/st.ftAtt*100)+'%':'—')}
-          ${row('TO', st=>st.to||'0')}
-          ${row('攻撃回数', st=>st.poss||'0')}
-          ${row('得点', st=>st.pts)}
-          ${row('得点効率', st=>st.eff, acol)}
-        </tbody>
-      </table>
-      </div>
-    </div>`;
-  }).join('');
-  
-  if(!G.shots.length&&!G.ftSets.length){
-    el.innerHTML='<div style="padding:16px;text-align:center;color:#bbb;font-size:13px">シュートを記録するとスタッツが表示されます</div>';
-    return;
-  }
-  el.innerHTML=html;
-}
 
 // ══ ホーム ══
 function renderHome(){
@@ -1170,6 +1192,7 @@ function openGameView(){
   document.getElementById('end-btn').style.background=G.completed?'#e8a020':'#27ae60';
   showTab('score');autoScroll();
   selectQ(G.period||1);
+  initShotData();
 }
 
 // ══ グリッド ══
@@ -1582,7 +1605,7 @@ function showTab(t){
   });
   document.querySelectorAll('.gtab').forEach((b,i)=>b.classList.toggle('on',
     ['score','shot','roster','info'].indexOf(t)===i));
-  if(t==='shot'){renderShotMarkers();renderFTList();renderTOSection();renderShotStats();}
+  if(t==='shot'){setTimeout(()=>{initCourtEvents();renderShotMarkers();renderFTList();renderTOSection();renderShotStats();},50);}
 }
 
 // ══ PDF ══
@@ -1674,4 +1697,91 @@ function printSheet(){
 renderHome();
 </script>
 </body>
-</html>
+</html>  <!-- シュートチャートタブ -->
+  <div id="shot-tab" style="display:none;padding-bottom:20px">
+
+    <!-- チーム切替 + 自動スコア -->
+    <div style="display:flex;background:#1a1a1a;align-items:center">
+      <button class="sc-tbtn on" id="sct-W" onclick="setShotTeam('白')">⬜ 白</button>
+      <button class="sc-tbtn" id="sct-B" onclick="setShotTeam('黒')">⬛ 黒</button>
+      <label style="margin-left:auto;padding:8px 10px;display:flex;align-items:center;gap:5px;color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" id="auto-score-chk" checked style="width:14px;height:14px;accent-color:#e8a020">
+        スコア自動反映
+      </label>
+    </div>
+
+    <!-- コート -->
+    <div style="background:#e5d9c0;padding:6px 6px 2px;text-align:center">
+      <div style="font-size:10px;color:#999;margin-bottom:3px">タップ:記録 ／ 長押し:移動</div>
+      <div id="court-wrap" style="position:relative;max-width:480px;margin:0 auto">
+        <svg id="court-svg" viewBox="0 0 300 260"
+          style="width:100%;height:auto;display:block;touch-action:none;user-select:none">
+          <!-- コート背景 -->
+          <rect x="0" y="0" width="300" height="260" fill="#F5DEB3"/>
+          <rect x="3" y="3" width="294" height="254" fill="none" stroke="#444" stroke-width="1.5" rx="1"/>
+          <!-- ペイント -->
+          <rect x="108" y="194" width="84" height="62" fill="#FADADD" stroke="#444" stroke-width="1.5"/>
+          <!-- FTライン -->
+          <line x1="108" y1="194" x2="192" y2="194" stroke="#444" stroke-width="1.5"/>
+          <!-- FTサークル（上半分破線） -->
+          <path d="M108,194 A42,42 0 0 1 192,194" fill="none" stroke="#444" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <path d="M108,194 A42,42 0 0 0 192,194" fill="none" stroke="#444" stroke-width="1.5"/>
+          <!-- リストリクテッド -->
+          <path d="M127,256 A23,23 0 0 1 173,256" fill="none" stroke="#666" stroke-width="1"/>
+          <!-- バックボード -->
+          <rect x="125" y="248" width="50" height="3" fill="none" stroke="#e74c3c" stroke-width="2.5"/>
+          <!-- リム -->
+          <circle cx="150" cy="243" r="8" fill="none" stroke="#e74c3c" stroke-width="2"/>
+          <!-- コーナー3P -->
+          <line x1="3" y1="175" x2="40" y2="175" stroke="#444" stroke-width="1.5"/>
+          <line x1="260" y1="175" x2="297" y2="175" stroke="#444" stroke-width="1.5"/>
+          <!-- 3Pアーク -->
+          <path d="M40,175 A127,127 0 0 1 260,175" fill="none" stroke="#444" stroke-width="1.5"/>
+          <!-- レーンマーク -->
+          <line x1="103" y1="213" x2="108" y2="213" stroke="#666" stroke-width="1"/>
+          <line x1="192" y1="213" x2="197" y2="213" stroke="#666" stroke-width="1"/>
+          <line x1="103" y1="228" x2="108" y2="228" stroke="#666" stroke-width="1"/>
+          <line x1="192" y1="228" x2="197" y2="228" stroke="#666" stroke-width="1"/>
+          <!-- 3Pラベル -->
+          <text x="150" y="155" text-anchor="middle" font-size="9" fill="#888">3P</text>
+          <text x="150" y="220" text-anchor="middle" font-size="8" fill="#c0736a">2P</text>
+          <!-- シュートマーカー（JS追加） -->
+          <g id="shot-markers"></g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- クイック入力（タブ切り替え不要） -->
+    <div style="background:#111;padding:6px 10px">
+      <div style="font-size:10px;color:#666;text-align:center;margin-bottom:5px">クイック入力（位置なし）</div>
+      <div id="quick-btns" style="display:flex;gap:5px">
+        <button onclick="quickScore(1)" style="flex:1;padding:10px 0;background:#222;border:1px solid #444;border-radius:8px;color:#fff;font-family:monospace;font-size:20px;font-weight:700">+1</button>
+        <button onclick="quickScore(2)" style="flex:1;padding:10px 0;background:#222;border:1px solid #444;border-radius:8px;color:#fff;font-family:monospace;font-size:20px;font-weight:700">+2</button>
+        <button onclick="quickScore(3)" style="flex:1;padding:10px 0;background:#222;border:1px solid #444;border-radius:8px;color:#fff;font-family:monospace;font-size:20px;font-weight:700">+3</button>
+        <button onclick="quickFoul()" style="flex:1;padding:10px 0;background:#222;border:1px solid #500;border-radius:8px;color:#ff7070;font-size:13px;font-weight:700">FOUL</button>
+      </div>
+    </div>
+
+    <!-- フリースロー -->
+    <div style="padding:8px 10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:700">🏀 フリースロー</div>
+        <button onclick="addFTSet()" style="padding:5px 10px;background:#e8a020;border-radius:6px;color:#fff;font-size:11px;font-weight:700">＋ セット追加</button>
+      </div>
+      <div id="ft-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+
+    <!-- ターンオーバー -->
+    <div style="padding:4px 10px 8px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px">⚠ ミス（TO）　<span style="font-size:10px;color:#888;font-weight:400">現在のQに記録</span></div>
+      <div id="to-section" style="display:flex;gap:8px"></div>
+    </div>
+
+    <!-- スタッツ -->
+    <div style="padding:4px 10px 16px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px">📊 スタッツ</div>
+      <div id="shot-stats-area" style="border-radius:8px;overflow:hidden;border:1px solid #ddd"></div>
+    </div>
+  </div>
+
+
