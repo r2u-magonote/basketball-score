@@ -204,6 +204,17 @@ input{font-family:inherit}
 .em-del{flex:1;padding:13px;background:#fff;border:2px solid #e74c3c;border-radius:12px;color:#e74c3c;font-weight:700;font-size:13px}
 .em-cancel{flex:1;padding:13px;background:#f0f0f0;border-radius:12px;color:#888;font-weight:700;font-size:13px}
 
+/* シュートチャート */
+.sc-tbtn{flex:1;padding:10px;background:none;color:#666;font-size:13px;font-weight:700;border-bottom:3px solid transparent}
+.sc-tbtn.on{color:#fff;border-bottom-color:#e8a020}
+.sm-type-btn.on{background:#e8a020!important;border-color:#e8a020!important;color:#fff!important}
+.sm-pg-btn{padding:10px 4px;border-radius:8px;border:2px solid #ddd;background:#f8f8f8;font-family:monospace;font-size:16px;font-weight:700;color:#333;cursor:pointer}
+.sm-pg-btn.on{background:#e8a020;border-color:#e8a020;color:#fff}
+.ft-set-card{background:#fff;border:1px solid #eee;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ft-shot-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer;border:2px solid #ddd;background:#f5f5f5}
+.ft-shot-dot.made{background:#27ae60;border-color:#27ae60;color:#fff}
+.ft-shot-dot.miss{background:#e74c3c;border-color:#e74c3c;color:#fff}
+
 /* Qセレクター */
 .q-sel-row{display:flex;gap:5px;margin:6px 0}
 .qsbtn{flex:1;padding:9px 0;border-radius:8px;font-size:14px;font-weight:700;
@@ -280,17 +291,21 @@ input{font-family:inherit}
   </div>
   <div id="gtabs">
     <button class="gtab on" onclick="showTab('score')">スコア</button>
+    <button class="gtab" onclick="showTab('shot')">シュート</button>
     <button class="gtab" onclick="showTab('roster')">選手</button>
     <button class="gtab" onclick="showTab('info')">情報</button>
-    <button class="gtab" onclick="showTab('history')">履歴・修正</button>
   </div>
 
   <!-- 得点タブ -->
   <div id="score-tab">
     <div id="shdr">
-      <div class="thdr"><div class="tlbl" id="lbl-W">白チーム</div><div class="tsc" id="sW">0</div></div>
+      <div class="thdr">
+        <div id="hdr-photo-W" style="width:32px;height:32px;border-radius:50%;overflow:hidden;margin:0 auto 2px;border:2px solid #555;display:flex;align-items:center;justify-content:center;background:#333;flex-shrink:0"></div>
+        <div class="tlbl" id="lbl-W">白チーム</div><div class="tsc" id="sW">0</div></div>
       <div style="text-align:center"><div style="color:#444;font-size:14px;margin-bottom:16px">—</div><div id="difflbl"></div><div id="qinfo">Q1</div></div>
-      <div class="thdr"><div class="tlbl" id="lbl-B">黒チーム</div><div class="tsc" id="sB">0</div></div>
+      <div class="thdr">
+        <div id="hdr-photo-B" style="width:32px;height:32px;border-radius:50%;overflow:hidden;margin:0 auto 2px;border:2px solid #555;display:flex;align-items:center;justify-content:center;background:#333;flex-shrink:0"></div>
+        <div class="tlbl" id="lbl-B">黒チーム</div><div class="tsc" id="sB">0</div></div>
     </div>
     <div id="rsc">
       <div id="rsh">ランニングスコア</div>
@@ -301,6 +316,13 @@ input{font-family:inherit}
       </div>
       <div id="gscroll"></div>
     </div>
+
+    <!-- タイムアウト -->
+    <div id="to-bar" style="padding:6px 0;border-top:1px solid #eee;border-bottom:1px solid #eee;margin:0 0 8px">
+      <div style="font-size:10px;color:#999;font-weight:700;letter-spacing:1px;margin-bottom:5px">タイムアウト</div>
+      <div id="to-display" style="display:flex;gap:8px"></div>
+    </div>
+
     <div class="tib"><div class="til">⬜ 白チーム</div>
       <div class="pbtns">
         <button class="pbtn w" onclick="openModal('白',1)">+1</button>
@@ -327,6 +349,7 @@ input{font-family:inherit}
       <button class="qsbtn" id="qsbtn2" onclick="selectQ(2)">Q2</button>
       <button class="qsbtn" id="qsbtn3" onclick="selectQ(3)">Q3</button>
       <button class="qsbtn" id="qsbtn4" onclick="selectQ(4)">Q4</button>
+      <button class="qsbtn" id="qsbtn5" onclick="selectQ(5)" style="flex:0 0 auto;padding:9px 10px;font-size:12px">OT</button>
     </div>
     <div id="player-stats">
       <div class="ptwrap">
@@ -370,9 +393,21 @@ input{font-family:inherit}
       </div>
     </div>
     <div class="rtsec">
-      <div class="rthdr"><div class="rttitle wt">⬜ 白チーム</div>
+      <!-- チーム写真 -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div id="photo-W" onclick="triggerPhoto('白')"
+          style="width:72px;height:72px;border-radius:8px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;background:#f5f5f5">
+          <span style="font-size:22px">📸</span>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#888;margin-bottom:4px">チーム写真（タップで変更）</div>
+          <button onclick="removePhoto('白')" id="photo-del-W" style="display:none;padding:3px 10px;background:none;border:1px solid #ddd;border-radius:4px;font-size:11px;color:#aaa">削除</button>
+        </div>
+      </div>
+      <input type="file" id="photo-file-W" accept="image/*" style="display:none" onchange="uploadPhoto(event,'白')">
+      <div class="rthdr"><div class="rttitle wt">⬜ 白チーム　選手登録</div>
         <div class="rtbtns">
-          <button class="imgbtn" id="img-btn-W" onclick="triggerImport('白')">📷 画像</button>
+          <button class="imgbtn" id="img-btn-W" onclick="triggerImport('白')">📷 名簿読込</button>
           <button class="cpbtn" onclick="copyRoster('白')">前回コピー</button>
           <button class="addbtn" onclick="addPlayer('白')">＋</button>
         </div>
@@ -382,9 +417,21 @@ input{font-family:inherit}
       <div id="roster-W"></div>
     </div>
     <div class="rtsec">
-      <div class="rthdr"><div class="rttitle bk">⬛ 黒チーム</div>
+      <!-- チーム写真 -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div id="photo-B" onclick="triggerPhoto('黒')"
+          style="width:72px;height:72px;border-radius:8px;border:2px dashed #555;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;background:#222">
+          <span style="font-size:22px">📸</span>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#888;margin-bottom:4px">チーム写真（タップで変更）</div>
+          <button onclick="removePhoto('黒')" id="photo-del-B" style="display:none;padding:3px 10px;background:none;border:1px solid #555;border-radius:4px;font-size:11px;color:#888">削除</button>
+        </div>
+      </div>
+      <input type="file" id="photo-file-B" accept="image/*" style="display:none" onchange="uploadPhoto(event,'黒')">
+      <div class="rthdr"><div class="rttitle bk">⬛ 黒チーム　選手登録</div>
         <div class="rtbtns">
-          <button class="imgbtn" id="img-btn-B" onclick="triggerImport('黒')">📷 画像</button>
+          <button class="imgbtn" id="img-btn-B" onclick="triggerImport('黒')">📷 名簿読込</button>
           <button class="cpbtn" onclick="copyRoster('黒')">前回コピー</button>
           <button class="addbtn" onclick="addPlayer('黒')">＋</button>
         </div>
@@ -407,6 +454,54 @@ input{font-family:inherit}
   <div id="history-tab">
     <div class="hist-note">✏️ エントリーをタップすると修正できます。点数・背番号の変更、削除が可能です。変更後は自動で全スコアを再計算します。</div>
     <div id="hist-list"></div>
+  </div>
+</div>
+
+
+<!-- シュートモーダル -->
+<div id="shot-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center">
+  <div style="width:100%;max-width:640px;background:#fff;border-radius:20px 20px 0 0;padding:16px 16px 32px;max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+    <div id="sm-zone" style="text-align:center;font-size:13px;color:#888;margin-bottom:12px"></div>
+    <!-- 成功/失敗 -->
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <button id="sm-made-btn" onclick="smSetMade(true)" style="flex:1;padding:16px;border-radius:12px;font-size:28px;border:3px solid #ddd;background:#f8f8f8">⭕</button>
+      <button id="sm-miss-btn" onclick="smSetMade(false)" style="flex:1;padding:16px;border-radius:12px;font-size:28px;border:3px solid #ddd;background:#f8f8f8">✕</button>
+    </div>
+    <!-- シュートタイプ（ゴール下のみ） -->
+    <div id="sm-type-wrap" style="display:none;margin-bottom:14px">
+      <div style="font-size:11px;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:6px">ゴール下のタイプ</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        <button class="sm-type-btn" onclick="smSetType('fastbreak')" style="padding:8px 2px;border-radius:8px;border:2px solid #ddd;background:#f8f8f8;font-size:11px;font-weight:700;color:#555">速攻</button>
+        <button class="sm-type-btn" onclick="smSetType('layup')" style="padding:8px 2px;border-radius:8px;border:2px solid #ddd;background:#f8f8f8;font-size:11px;font-weight:700;color:#555">レイアップ</button>
+        <button class="sm-type-btn" onclick="smSetType('drive')" style="padding:8px 2px;border-radius:8px;border:2px solid #ddd;background:#f8f8f8;font-size:11px;font-weight:700;color:#555">ドライブ</button>
+        <button class="sm-type-btn" onclick="smSetType('rebound')" style="padding:8px 2px;border-radius:8px;border:2px solid #ddd;background:#f8f8f8;font-size:11px;font-weight:700;color:#555">リバウンド</button>
+      </div>
+    </div>
+    <!-- 背番号 -->
+    <div style="font-size:11px;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:6px">背番号（任意）</div>
+    <div id="sm-pg" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="closeShotModal()" style="flex:1;padding:13px;background:#f0f0f0;border-radius:12px;font-weight:700;color:#666;font-size:14px">キャンセル</button>
+      <button onclick="confirmShot()" id="sm-confirm" style="flex:2;padding:13px;border-radius:12px;font-weight:700;color:#fff;font-size:15px;background:#ccc">✓ 記録</button>
+    </div>
+  </div>
+</div>
+
+<!-- FTモーダル -->
+<div id="ft-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center">
+  <div style="width:100%;max-width:640px;background:#fff;border-radius:20px 20px 0 0;padding:16px 16px 32px" onclick="event.stopPropagation()">
+    <div style="text-align:center;font-size:16px;font-weight:700;margin-bottom:14px">フリースロー</div>
+    <div style="font-size:11px;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:6px">背番号（任意）</div>
+    <div id="ft-pg" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px"></div>
+    <div style="font-size:11px;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:8px">1本ずつタップ</div>
+    <div id="ft-shots-row" style="display:flex;gap:8px;margin-bottom:14px;justify-content:center">
+      <button onclick="ftToggle(0)" id="ft-s0" style="width:56px;height:56px;border-radius:50%;font-size:22px;border:2px solid #ddd;background:#f8f8f8">？</button>
+      <button onclick="ftToggle(1)" id="ft-s1" style="width:56px;height:56px;border-radius:50%;font-size:22px;border:2px solid #ddd;background:#f8f8f8">？</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="closeFTModal()" style="flex:1;padding:13px;background:#f0f0f0;border-radius:12px;font-weight:700;color:#666">キャンセル</button>
+      <button onclick="confirmFT()" style="flex:2;padding:13px;background:#e8a020;border-radius:12px;font-weight:700;color:#fff;font-size:15px">✓ 記録</button>
+    </div>
   </div>
 </div>
 
@@ -478,7 +573,7 @@ function newGameObj(){
   return{id:Date.now().toString(),createdAt:new Date().toLocaleDateString('ja-JP'),
     gameTitle:'',gameDate:'',teamNames:{'白':'白チーム','黒':'黒チーム'},
     scores:{'白':0,'黒':0},grid:{'白':{},'黒':{}},stats:{},
-    roster:{'白':[],'黒':[]},history:[],period:1,quarterScores:[],completed:false};
+    roster:{'白':[],'黒':[]},history:[],period:1,quarterScores:[],completed:false,timeouts:{'白':{'h1':[null,null],'h2':[null,null,null],'ot':[null,null]},'黒':{'h1':[null,null],'h2':[null,null,null],'ot':[null,null]}},shots:[],ftSets:[],turnovers:{'白':{1:0,2:0,3:0,4:0,5:0},'黒':{1:0,2:0,3:0,4:0,5:0}},teamPhotos:{'白':null,'黒':null}};
 }
 function saveGame(){
   if(!G)return;
@@ -515,7 +610,7 @@ function rebuildFromHistory(){
 
 function refreshAllUI(){
   refreshGrid();renderScores();renderTable('白');renderTable('黒');
-  renderHistory();renderScoreLog();renderQuarterStats();renderUndo();saveGame();
+  renderHistory();renderScoreLog();renderQuarterStats();renderTimeouts();renderUndo();saveGame();
 }
 
 function renderScoreLog(){
@@ -539,6 +634,471 @@ function renderScoreLog(){
       <div style="font-size:11px;color:#1a5fb4;font-weight:700;padding:3px 8px;background:#f0f5ff;border-radius:4px">修正</div>
     </div>`;
   }).join('');
+}
+
+
+
+
+// ══ チーム写真 ══
+function triggerPhoto(team){
+  document.getElementById('photo-file-'+(team==='白'?'W':'B')).click();
+}
+
+async function uploadPhoto(e, team){
+  const file = e.target.files[0];
+  if(!file) return;
+  const t = team==='白'?'W':'B';
+  // Canvas でリサイズ・圧縮（最大400px、JPEG 0.7）
+  const dataUrl = await resizeImage(file, 400, 400, 0.7);
+  if(!G.teamPhotos) G.teamPhotos={};
+  G.teamPhotos[team] = dataUrl;
+  renderTeamPhoto(team);
+  saveGame();
+  e.target.value='';
+}
+
+function resizeImage(file, maxW, maxH, quality){
+  return new Promise(resolve=>{
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      let w=img.width, h=img.height;
+      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+      if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+      const cv=document.createElement('canvas');
+      cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      resolve(cv.toDataURL('image/jpeg', quality));
+      URL.revokeObjectURL(url);
+    };
+    img.src=url;
+  });
+}
+
+function renderTeamPhoto(team){
+  const t=team==='白'?'W':'B';
+  const el=document.getElementById('photo-'+t);
+  const delBtn=document.getElementById('photo-del-'+t);
+  const photo=G.teamPhotos&&G.teamPhotos[team];
+  if(photo){
+    el.innerHTML=`<img src="${photo}" style="width:100%;height:100%;object-fit:cover">`;
+    el.style.border='2px solid '+(team==='白'?'#bbb':'#555');
+    if(delBtn)delBtn.style.display='inline-block';
+  }else{
+    el.innerHTML='<span style="font-size:22px">📸</span>';
+    el.style.border='2px dashed '+(team==='白'?'#ccc':'#555');
+    if(delBtn)delBtn.style.display='none';
+  }
+}
+
+function removePhoto(team){
+  if(!confirm('チーム写真を削除しますか？'))return;
+  if(G.teamPhotos)G.teamPhotos[team]=null;
+  renderTeamPhoto(team);
+  saveGame();
+}
+
+function renderAllPhotos(){
+  renderTeamPhoto('白');
+  renderTeamPhoto('黒');
+  // スコアヘッダーの小アイコン
+  ['白','黒'].forEach(team=>{
+    const t=team==='白'?'W':'B';
+    const hdr=document.getElementById('hdr-photo-'+t);
+    if(!hdr)return;
+    const photo=G.teamPhotos&&G.teamPhotos[team];
+    if(photo){hdr.innerHTML=`<img src="${photo}" style="width:100%;height:100%;object-fit:cover">`;}
+    else{hdr.innerHTML='';}
+  });
+}
+
+// ══ タイムアウト ══
+function initTimeouts(){
+  // 配列形式: [{time:'07:23'}|null, null, ...]
+  function makeSlots(n){return Array.from({length:n},()=>null);}
+  if(!G.timeouts)G.timeouts={'白':{'h1':makeSlots(2),'h2':makeSlots(3),'ot':makeSlots(2)},'黒':{'h1':makeSlots(2),'h2':makeSlots(3),'ot':makeSlots(2)}};
+  // 古い数値形式からの移行
+  ['白','黒'].forEach(team=>{
+    if(!G.timeouts[team])G.timeouts[team]={'h1':makeSlots(2),'h2':makeSlots(3),'ot':makeSlots(2)};
+    ['h1','h2','ot'].forEach(h=>{
+      const max=h==='h1'?2:h==='h2'?3:2;
+      if(typeof G.timeouts[team][h]==='number'){
+        const n=G.timeouts[team][h];
+        G.timeouts[team][h]=Array.from({length:max},(_,i)=>i<n?{time:''}:null);
+      }
+      if(!Array.isArray(G.timeouts[team][h]))G.timeouts[team][h]=makeSlots(max);
+    });
+  });
+}
+function getHalf(period){
+  const p=period||G.period;
+  if(p<=2)return'h1';if(p<=4)return'h2';return'ot';
+}
+function getTOMax(half){
+  if(half==='h1')return 2;if(half==='h2')return 3;return 2;
+}
+function getTOLabel(half){
+  return{'h1':'前半','h2':'後半','ot':'延長'}[half];
+}
+
+function renderTimeouts(){
+  const el=document.getElementById('to-display');
+  if(!el)return;
+  initTimeouts();
+  const curHalf=getHalf();
+  // 全ての期間（前半/後半/OT）を表示
+  const halves=['h1','h2','ot'];
+  el.innerHTML=['白','黒'].map(team=>{
+    const tData=G.timeouts[team];
+    const halfDots=halves.map(half=>{
+      const max=getTOMax(half);
+      const used=tData[half]||0;
+      const isCur=half===curHalf;
+      const dots=Array.from({length:max},(_,i)=>{
+        const filled=i<used;
+        const tc=team==='白'?'#555':'#eee';
+        const bg=filled?(team==='白'?'#333':'#fff'):'transparent';
+        const border=filled?(team==='白'?'#333':'#fff'):(team==='白'?'#bbb':'#666');
+        return`<span onclick="tapTO('${team}','${half}',${i})"
+          style="display:inline-block;width:14px;height:14px;border-radius:50%;
+          background:${bg};border:2px solid ${border};margin:0 1px;cursor:pointer;
+          ${isCur?'box-shadow:0 0 0 1px #e8a020':''}"></span>`;
+      }).join('');
+      return`<span style="margin-right:6px;opacity:${isCur?1:0.5}">
+        <span style="font-size:9px;color:${team==='白'?'#888':'#aaa'}">${getTOLabel(half)}</span>
+        ${dots}
+        <span style="font-size:9px;color:${isCur?'#e8a020':(team==='白'?'#bbb':'#666')}">残${max-used}</span>
+      </span>`;
+    }).join('');
+    const bg=team==='白'?'#fff':'#111';
+    const fg=team==='白'?'#333':'#ccc';
+    return`<div style="flex:1;background:${bg};border-radius:6px;border:1px solid ${team==='白'?'#eee':'#333'};padding:5px 7px">
+      <div style="font-size:10px;font-weight:700;color:${fg};margin-bottom:3px">${team}</div>
+      <div style="line-height:1.8">${halfDots}</div>
+    </div>`;
+  }).join('');
+}
+
+function tapTO(team,half,idx){
+  initTimeouts();
+  const used=G.timeouts[team][half]||0;
+  const max=getTOMax(half);
+  if(idx<used){
+    // 取り消し（最後の1つを戻す）
+    if(!confirm('タイムアウトを1回取り消しますか？'))return;
+    G.timeouts[team][half]--;
+  }else if(used<max){
+    G.timeouts[team][half]++;
+  }else{
+    alert('このハーフのタイムアウトは使い切っています');return;
+  }
+  renderTimeouts();saveGame();
+}
+
+// ══ シュートチャート ══
+let activeShotTeam='白';
+let smMade=null,smType=null,smNum=null,smX=0,smY=0,smZone='';
+let ftNum=null,ftShots=[null,null];
+
+function initShotData(){
+  if(!G.shots)G.shots=[];
+  if(!G.ftSets)G.ftSets=[];
+  // TOをQごと管理 {白:{1:0,2:0,3:0,4:0,5:0}, 黒:{...}}
+  if(!G.turnovers||typeof G.turnovers['白']==='number'){
+    const old={'白':G.turnovers?G.turnovers['白']||0:0,'黒':G.turnovers?G.turnovers['黒']||0:0};
+    G.turnovers={'白':{1:old['白'],2:0,3:0,4:0,5:0},'黒':{1:old['黒'],2:0,3:0,4:0,5:0}};
+  }
+  ['白','黒'].forEach(t=>{if(!G.turnovers[t])G.turnovers[t]={1:0,2:0,3:0,4:0,5:0};});
+}
+
+function setShotTeam(team){
+  activeShotTeam=team;
+  document.getElementById('sct-W').className='sc-tbtn'+(team==='白'?' on':'');
+  document.getElementById('sct-B').className='sc-tbtn'+(team==='黒'?' on':'');
+  renderShotMarkers();renderFTList();renderTOSection();renderShotStats();
+}
+
+// コートタップ（マウス）
+function courtTap(e){
+  if(e.type==='click'&&e.target.closest('#shot-markers'))return;
+  const svg=document.getElementById('court-svg');
+  const r=svg.getBoundingClientRect();
+  const sx=(e.clientX-r.left)*300/r.width;
+  const sy=(e.clientY-r.top)*260/r.height;
+  openShotModal(sx,sy);
+}
+// タッチ対応
+function courtTouchEnd(e){
+  e.preventDefault();
+  const t=e.changedTouches[0];
+  const svg=document.getElementById('court-svg');
+  const r=svg.getBoundingClientRect();
+  const sx=(t.clientX-r.left)*300/r.width;
+  const sy=(t.clientY-r.top)*260/r.height;
+  openShotModal(sx,sy);
+}
+
+function getZone(x,y){
+  // ペイント内
+  if(x>=108&&x<=192&&y>=194)return'key';
+  // 3P（アーク外またはコーナー）
+  const dx=x-150,dy=y-243;
+  const d=Math.sqrt(dx*dx+dy*dy);
+  if(d>127||(y>175&&(x<40||x>260)))return'three';
+  return'two';
+}
+
+function openShotModal(x,y){
+  initShotData();
+  smX=x;smY=y;smMade=null;smType=null;smNum=null;
+  smZone=getZone(x,y);
+  // リセット
+  document.getElementById('sm-made-btn').style.cssText='flex:1;padding:16px;border-radius:12px;font-size:28px;border:3px solid #ddd;background:#f8f8f8';
+  document.getElementById('sm-miss-btn').style.cssText='flex:1;padding:16px;border-radius:12px;font-size:28px;border:3px solid #ddd;background:#f8f8f8';
+  document.querySelectorAll('.sm-type-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('sm-type-wrap').style.display=smZone==='key'?'block':'none';
+  const zLabel={'key':'ゴール下','three':'3ポイント','two':'2ポイント'};
+  document.getElementById('sm-zone').textContent=zLabel[smZone];
+  document.getElementById('sm-confirm').style.background='#ccc';
+  // 選手グリッド
+  buildSmPG();
+  document.getElementById('shot-modal').style.display='flex';
+}
+
+function buildSmPG(){
+  const pg=document.getElementById('sm-pg');
+  const roster=G.roster[activeShotTeam]||[];
+  if(!roster.length){pg.innerHTML='<div style="color:#aaa;font-size:12px;grid-column:1/-1;padding:4px 0">選手登録なし（背番号なしで記録可）</div>';return;}
+  pg.innerHTML=roster.map(p=>`<button class="sm-pg-btn" onclick="smSelNum('${p.num}')">${p.num}<div style="font-size:9px;color:#888;margin-top:1px">${(p.name||'').slice(0,3)}</div></button>`).join('');
+}
+function smSelNum(n){
+  smNum=n===smNum?null:n;
+  document.querySelectorAll('.sm-pg-btn').forEach(b=>b.classList.toggle('on',b.textContent.trim().startsWith(n)&&b.textContent.trim().replace(/[\s\S]*?(\d+).*/,'$1')===n));
+  // simpler
+  document.querySelectorAll('.sm-pg-btn').forEach(b=>{b.classList.toggle('on',smNum&&b.querySelector('div')&&b.textContent.startsWith(n));});
+}
+function smSetMade(v){
+  smMade=v;
+  document.getElementById('sm-made-btn').style.cssText='flex:1;padding:16px;border-radius:12px;font-size:28px;border:3px solid '+(v?'#27ae60':'#ddd')+';background:'+(v?'#e8f5e9':'#f8f8f8');
+  document.getElementById('sm-miss-btn').style.cssText='flex:1;padding:16px;border-radius:12px;font-size:28px;border:3px solid '+(!v?'#e74c3c':'#ddd')+';background:'+(!v?'#fdecea':'#f8f8f8');
+  document.getElementById('sm-confirm').style.background=smMade!==null?'#333':'#ccc';
+}
+function smSetType(t){
+  smType=t;
+  document.querySelectorAll('.sm-type-btn').forEach(b=>b.classList.toggle('on',b.onclick.toString().includes("'"+t+"'")));
+}
+function closeShotModal(){document.getElementById('shot-modal').style.display='none';}
+function confirmShot(){
+  if(smMade===null)return;
+  initShotData();
+  const shot={
+    id:Date.now().toString()+Math.random().toString(36).slice(2),
+    x:smX,y:smY,num:smNum||'',team:activeShotTeam,
+    made:smMade,zone:smZone,type:smType||'',period:G.period
+  };
+  G.shots.push(shot);
+  renderShotMarkers();renderShotStats();
+  closeShotModal();saveGame();
+}
+
+// マーカー描画
+function renderShotMarkers(){
+  const g=document.getElementById('shot-markers');
+  if(!g||!G.shots)return;
+  const shots=G.shots.filter(s=>s.team===activeShotTeam);
+  const wColor='#3B8AFF',bColor='#333';
+  const tc=activeShotTeam==='白'?wColor:bColor;
+  g.innerHTML=shots.map(s=>{
+    const lbl=s.num||'●';
+    if(s.made){
+      return`<g onclick="deleteShotConfirm('${s.id}')" style="cursor:pointer">
+        <circle cx="${s.x}" cy="${s.y}" r="11" fill="${tc}" opacity=".85"/>
+        <text x="${s.x}" y="${s.y}" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="700" fill="#fff">${lbl}</text>
+      </g>`;
+    }else{
+      return`<g onclick="deleteShotConfirm('${s.id}')" style="cursor:pointer">
+        <circle cx="${s.x}" cy="${s.y}" r="9" fill="none" stroke="${tc}" stroke-width="1.5" opacity=".6"/>
+        <text x="${s.x}" y="${s.y}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${tc}" opacity=".7">${lbl}</text>
+      </g>`;
+    }
+  }).join('');
+}
+function deleteShotConfirm(id){
+  if(!confirm('このシュートを削除しますか？'))return;
+  G.shots=G.shots.filter(s=>s.id!==id);
+  renderShotMarkers();renderShotStats();saveGame();
+}
+
+// FT
+function addFTSet(){
+  initShotData();
+  ftNum=null;ftShots=[null,null];
+  buildFTPG();
+  document.getElementById('ft-s0').textContent='？';document.getElementById('ft-s0').style.cssText='width:56px;height:56px;border-radius:50%;font-size:22px;border:2px solid #ddd;background:#f8f8f8';
+  document.getElementById('ft-s1').textContent='？';document.getElementById('ft-s1').style.cssText='width:56px;height:56px;border-radius:50%;font-size:22px;border:2px solid #ddd;background:#f8f8f8';
+  document.getElementById('ft-modal').style.display='flex';
+}
+function buildFTPG(){
+  const pg=document.getElementById('ft-pg');
+  const roster=G.roster[activeShotTeam]||[];
+  if(!roster.length){pg.innerHTML='<div style="color:#aaa;font-size:12px;grid-column:1/-1">選手登録なし</div>';return;}
+  pg.innerHTML=roster.map(p=>`<button class="sm-pg-btn" style="padding:8px 2px;border-radius:6px;border:2px solid #ddd;background:#f8f8f8;font-family:monospace;font-size:14px;font-weight:700" onclick="ftSelNum('${p.num}')">${p.num}<div style="font-size:8px;color:#888">${(p.name||'').slice(0,3)}</div></button>`).join('');
+}
+function ftSelNum(n){ftNum=n;document.querySelectorAll('#ft-pg button').forEach(b=>b.style.background=b.textContent.startsWith(n)?'#e8a020':'#f8f8f8');}
+function ftToggle(i){
+  ftShots[i]=ftShots[i]===null?true:ftShots[i]?false:null;
+  const el=document.getElementById('ft-s'+i);
+  el.textContent=ftShots[i]===null?'？':ftShots[i]?'○':'×';
+  const bg=ftShots[i]===null?'#f8f8f8':ftShots[i]?'#e8f5e9':'#fdecea';
+  const bc=ftShots[i]===null?'#ddd':ftShots[i]?'#27ae60':'#e74c3c';
+  el.style.cssText=`width:56px;height:56px;border-radius:50%;font-size:22px;border:2px solid ${bc};background:${bg}`;
+}
+function closeFTModal(){document.getElementById('ft-modal').style.display='none';}
+function confirmFT(){
+  const shots=ftShots.filter(s=>s!==null);
+  if(!shots.length){closeFTModal();return;}
+  G.ftSets.push({id:Date.now().toString()+Math.random().toString(36).slice(2),
+    team:activeShotTeam,num:ftNum||'',shots:ftShots.filter(s=>s!==null),period:G.period});
+  renderFTList();renderShotStats();closeFTModal();saveGame();
+}
+
+function renderFTList(){
+  const el=document.getElementById('ft-list');
+  if(!el||!G.ftSets)return;
+  const sets=G.ftSets.filter(s=>s.team===activeShotTeam);
+  if(!sets.length){el.innerHTML='<div style="color:#bbb;font-size:12px;padding:4px 0">まだ記録なし</div>';return;}
+  el.innerHTML=sets.map((s,i)=>`
+    <div class="ft-set-card">
+      ${s.num?`<span style="font-family:monospace;font-weight:700;font-size:13px">#${s.num}</span>`:''}
+      ${s.shots.map(m=>`<div class="ft-shot-dot ${m?'made':'miss'}">${m?'○':'×'}</div>`).join('')}
+      <span style="font-size:10px;color:#aaa">Q${s.period||'?'}</span>
+      <button onclick="deleteFTSet('${s.id}')" style="margin-left:auto;background:none;color:#ccc;font-size:16px;padding:0 2px">×</button>
+    </div>`).join('');
+}
+function deleteFTSet(id){G.ftSets=G.ftSets.filter(s=>s.id!==id);renderFTList();renderShotStats();saveGame();}
+
+function renderTOSection(){
+  const el=document.getElementById('to-section');
+  if(!el)return;
+  initShotData();
+  const q=G.period;
+  el.innerHTML=['白','黒'].map(team=>{
+    const curTo=getQTO(team,q);
+    const totalTo=getQTO(team,0);
+    const bg=team==='白'?'#fff':'#111';
+    const fg=team==='白'?'#000':'#fff';
+    const sub=team==='白'?'#888':'#666';
+    return`<div style="flex:1;background:${bg};border:1px solid ${team==='白'?'#ccc':'#333'};border-radius:8px;padding:8px;text-align:center">
+      <div style="font-size:10px;color:${sub};margin-bottom:2px">${team}　<span style="color:#e8a020">Q${q}</span></div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <button onclick="changeTo('${team}',-1)" style="width:28px;height:28px;border-radius:50%;background:#f0f0f0;color:#555;font-size:18px;font-weight:700;border:none;cursor:pointer">−</button>
+        <span style="font-family:monospace;font-size:24px;font-weight:700;color:${fg};min-width:28px;text-align:center">${curTo}</span>
+        <button onclick="changeTo('${team}',1)" style="width:28px;height:28px;border-radius:50%;background:#e8a020;color:#fff;font-size:18px;font-weight:700;border:none;cursor:pointer">＋</button>
+      </div>
+      <div style="font-size:10px;color:${sub};margin-top:2px">合計 ${totalTo}</div>
+    </div>`;
+  }).join('');
+}
+function getQTO(team,q){
+  initShotData();
+  if(!q)return Object.values(G.turnovers[team]).reduce((a,v)=>a+v,0);
+  return G.turnovers[team][q]||0;
+}
+function changeTo(team,d){
+  initShotData();
+  const q=G.period;
+  G.turnovers[team][q]=Math.max(0,(G.turnovers[team][q]||0)+d);
+  renderTOSection();renderShotStats();saveGame();
+}
+
+// ── Qごと＋全体のスタッツ ──
+function calcStats(team, q){
+  initShotData();
+  const shots=G.shots.filter(s=>s.team===team&&(q?s.period===q:true));
+  const ftSets=G.ftSets.filter(s=>s.team===team&&(q?s.period===q:true));
+  const fgMade=shots.filter(s=>s.made).length;
+  const fgAtt=shots.length;
+  const threeMade=shots.filter(s=>s.made&&s.zone==='three').length;
+  const threeAtt=shots.filter(s=>s.zone==='three').length;
+  const twoMade=shots.filter(s=>s.made&&s.zone!=='three').length;
+  const twoAtt=shots.filter(s=>s.zone!=='three').length;
+  const ftMade=ftSets.reduce((a,s)=>a+s.shots.filter(Boolean).length,0);
+  const ftAtt=ftSets.reduce((a,s)=>a+s.shots.length,0);
+  const ftSetCnt=ftSets.length;
+  const to=getQTO(team,q);
+  const poss=fgAtt+ftSetCnt+to||0;
+  const pts=q?getQPts(team,q):G.scores[team]||0;
+  const eff=poss>0?(pts/poss).toFixed(2):'—';
+  const fgPct=fgAtt?Math.round(fgMade/fgAtt*100):'—';
+  const threePct=threeAtt?Math.round(threeMade/threeAtt*100):'—';
+  const ftPct=ftAtt?Math.round(ftMade/ftAtt*100):'—';
+  // ゴール下内訳
+  const under={};
+  ['fastbreak','layup','drive','rebound'].forEach(t=>{
+    under[t]={m:shots.filter(s=>s.made&&s.type===t).length,a:shots.filter(s=>s.type===t).length};
+  });
+  return{fgMade,fgAtt,fgPct,threeMade,threeAtt,threePct,twoMade,twoAtt,ftMade,ftAtt,ftPct,ftSetCnt,to,poss,pts,eff,under};
+}
+
+function renderShotStats(){
+  const el=document.getElementById('shot-stats-area');
+  if(!el)return;
+  initShotData();
+  const qs=[1,2,3,4,5].filter(q=>G.history.some(a=>a.period===q)||getQTO('白',q)||getQTO('黒',q)||G.shots.some(s=>s.period===q)||G.ftSets.some(s=>s.period===q));
+  const cols=[...qs.map(q=>({label:'Q'+q,q})),{label:'合計',q:0}];
+  
+  const html=['白','黒'].map(team=>{
+    const bg=team==='白'?'#fff':'#111';
+    const fg=team==='白'?'#000':'#fff';
+    const mu=team==='白'?'#999':'#555';
+    const hbg=team==='白'?'#f0f0f0':'#000';
+    const acol=team==='白'?'#1a5fb4':'#e8a020';
+    
+    const thCols=cols.map(col=>`<th style="padding:3px 6px;font-size:10px;font-weight:700;color:${col.q===0?acol:fg};background:${hbg};border-bottom:1px solid ${team==='白'?'#ddd':'#222'};white-space:nowrap">${col.label}</th>`).join('');
+    
+    function row(label, fn, highlight){
+      const cells=cols.map(col=>{
+        const v=fn(calcStats(team,col.q));
+        return`<td style="padding:3px 6px;font-size:11px;text-align:center;color:${col.q===0?(highlight||fg):fg};${col.q===0?'font-weight:700':''};border-bottom:1px solid ${team==='白'?'#f5f5f5':'#1a1a1a'}">${v}</td>`;
+      }).join('');
+      return`<tr><th style="padding:3px 8px;font-size:10px;color:${mu};font-weight:400;text-align:left;background:${bg};border-bottom:1px solid ${team==='白'?'#f5f5f5':'#1a1a1a'};white-space:nowrap">${label}</th>${cells}</tr>`;
+    }
+    
+    const pct=(m,a)=>a?m+'/'+a+' '+Math.round(m/a*100)+'%':m?m+'/'+a:'—';
+    
+    // ゴール下ラベル
+    const underLabels={fastbreak:'速攻',layup:'レイアップ',drive:'ドライブ',rebound:'リバウンド'};
+    const underRows=Object.entries(underLabels).map(([type,lbl])=>
+      row('　'+lbl, st=>st.under[type].a?st.under[type].m+'/'+st.under[type].a:'—')
+    ).join('');
+    
+    return`<div style="background:${bg};border-bottom:2px solid ${team==='白'?'#ccc':'#000'}">
+      <div style="padding:5px 8px;font-size:11px;font-weight:700;color:${fg};background:${hbg};border-bottom:1px solid ${team==='白'?'#ddd':'#222'}">${team}チーム</div>
+      <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;min-width:200px">
+        <thead><tr><th style="padding:3px 8px;background:${hbg};border-bottom:1px solid ${team==='白'?'#ddd':'#222'}"></th>${thCols}</tr></thead>
+        <tbody>
+          ${row('FG', st=>pct(st.fgMade,st.fgAtt))}
+          ${row('2P', st=>pct(st.twoMade,st.twoAtt))}
+          ${row('3P', st=>pct(st.threeMade,st.threeAtt))}
+          ${row('ゴール下', st=>pct(st.fgMade-st.threeMade,st.fgAtt-st.threeAtt))}
+          ${underRows}
+          ${row('FT', st=>st.ftAtt?st.ftMade+'/'+st.ftAtt+' '+Math.round(st.ftMade/st.ftAtt*100)+'%':'—')}
+          ${row('TO', st=>st.to||'0')}
+          ${row('攻撃回数', st=>st.poss||'0')}
+          ${row('得点', st=>st.pts)}
+          ${row('得点効率', st=>st.eff, acol)}
+        </tbody>
+      </table>
+      </div>
+    </div>`;
+  }).join('');
+  
+  if(!G.shots.length&&!G.ftSets.length){
+    el.innerHTML='<div style="padding:16px;text-align:center;color:#bbb;font-size:13px">シュートを記録するとスタッツが表示されます</div>';
+    return;
+  }
+  el.innerHTML=html;
 }
 
 // ══ ホーム ══
@@ -585,6 +1145,8 @@ function goHome(){saveGame();G=null;renderHome();}
 function toggleComplete(){
   G.completed=!G.completed;
   document.getElementById('end-btn').textContent=G.completed?'再開':'試合終了';
+  if(!G.teamPhotos)G.teamPhotos={};
+  renderAllPhotos();
   document.getElementById('end-btn').style.background=G.completed?'#e8a020':'#27ae60';
   saveGame();
 }
@@ -594,10 +1156,11 @@ function openGameView(){
   document.getElementById('home-view').style.display='none';
   document.getElementById('game-view').style.display='block';
   rebuildFromHistory();
+  initShotData();initTimeouts();
   buildGrid();refreshGrid();renderScores();
   renderTable('白');renderTable('黒');
   renderRoster('白');renderRoster('黒');
-  renderHistory();renderScoreLog();renderQuarterStats();renderUndo();updateApiStatus();
+  renderHistory();renderScoreLog();renderQuarterStats();renderTimeouts();renderUndo();updateApiStatus();
   document.getElementById('name-W').value=G.teamNames['白']==='白チーム'?'':G.teamNames['白'];
   document.getElementById('name-B').value=G.teamNames['黒']==='黒チーム'?'':G.teamNames['黒'];
   document.getElementById('game-title').value=G.gameTitle||'';
@@ -652,7 +1215,7 @@ function renderScores(){
   document.getElementById('difflbl').textContent=d===0?'':(d>0?'白':'黒')+'+'+Math.abs(d);
   document.getElementById('qinfo').textContent='Q'+G.period;
   // Qボタンのデータ有無を更新
-  [1,2,3,4].forEach(i=>{
+  [1,2,3,4,5].forEach(i=>{
     const btn=document.getElementById('qsbtn'+i);
     if(!btn)return;
     const hasData=G.history.some(a=>a.period===i);
@@ -693,17 +1256,20 @@ function renderTable(team){
 function selectQ(q){
   G.period=q;
   // ボタン状態更新
-  [1,2,3,4].forEach(i=>{
+  [1,2,3,4,5].forEach(i=>{
     const btn=document.getElementById('qsbtn'+i);
     if(!btn)return;
     const hasData=G.history.some(a=>a.period===i);
     btn.className='qsbtn'+(i===q?' on':hasData?' has-data':'');
+    if(i===5)btn.style.padding='9px 10px';
   });
   document.getElementById('qinfo').textContent='Q'+q;
   const lbl=document.getElementById('q-recording-label');
   if(lbl)lbl.textContent='Q'+q+' に記録中';
   renderScoreLog();
   renderQuarterStats();
+  renderTimeouts();
+  renderTOSection();
   saveGame();
 }
 
@@ -717,22 +1283,22 @@ function getQFouls(team,q){
   return G.history.filter(a=>a.type==='foul'&&a.team===team&&a.period===q).length;
 }
 
-// チームファウルを赤黒交互のドットで表現
-function foulDots(count){
+// Q1/Q3=赤、Q2/Q4=黒 ピリオドベースの色
+function qFoulColor(period){
+  return(period===1||period===3)?'#e74c3c':'#111';
+}
+function foulDots(count, period){
   if(!count)return '<span style="color:#ddd;font-size:10px">—</span>';
+  const col=qFoulColor(period||1);
+  const isBk=col==='#111';
   let html='';
   for(let i=1;i<=count;i++){
-    if(i%2===1){
-      // 奇数：赤丸
-      html+=`<span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #e74c3c;color:#e74c3c;font-size:9px;font-weight:700;text-align:center;line-height:13px;margin:0 1px">${i}</span>`;
-    }else{
-      // 偶数：黒線（前の数字に線）
-      html+=`<span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #222;background:#222;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:13px;margin:0 1px;text-decoration:line-through">${i}</span>`;
-    }
+    html+=isBk
+      ?`<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#111;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:16px;margin:0 1px">${i}</span>`
+      :`<span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #e74c3c;color:#e74c3c;font-size:9px;font-weight:700;text-align:center;line-height:13px;margin:0 1px">${i}</span>`;
   }
   return html;
 }
-// PDF用テキスト版
 function foulDotsText(count){
   if(!count)return '—';
   return Array.from({length:count},(_,i)=>i+1).join(' ');
@@ -753,7 +1319,7 @@ function renderQuarterStats(){
     }).join('');
     const foulRow=qs.map(q=>{
       const f=getQFouls(team,q);
-      return`<td style="padding:4px 6px;text-align:center;border-bottom:1px solid #f0f0f0">${foulDots(f)}</td>`;
+      return`<td style="padding:4px 6px;text-align:center;border-bottom:1px solid #f0f0f0">${foulDots(f,q)}</td>`;
     }).join('');
     const bg=team==='白'?'#fff':'#111';
     const fg=team==='白'?'#000':'#fff';
@@ -1010,11 +1576,13 @@ async function importFromImage(e,team){
 
 // ══ タブ ══
 function showTab(t){
-  ['score','roster','info','history'].forEach(id=>{
-    document.getElementById(id+'-tab').style.display=t===id?'block':'none';
+  ['score','shot','roster','info','history'].forEach(id=>{
+    const el=document.getElementById(id+'-tab');
+    if(el)el.style.display=t===id?'block':'none';
   });
   document.querySelectorAll('.gtab').forEach((b,i)=>b.classList.toggle('on',
-    ['score','roster','info','history'].indexOf(t)===i));
+    ['score','shot','roster','info'].indexOf(t)===i));
+  if(t==='shot'){renderShotMarkers();renderFTList();renderTOSection();renderShotStats();}
 }
 
 // ══ PDF ══
@@ -1044,13 +1612,14 @@ function printSheet(){
         }).join('')}</div>`).join('')}</div>`;
   }
 
-  function makeDots(count){
+  function makeDots(count, period){
     if(!count)return'<span style="color:#ccc">—</span>';
+    const isRed=(period===1||period===3);
     return Array.from({length:count},(_,i)=>{
       const n=i+1;
-      return n%2===1
+      return isRed
         ?`<span style="display:inline-block;width:10pt;height:10pt;border-radius:50%;border:1.5pt solid #e74c3c;color:#e74c3c;font-size:5pt;font-weight:700;text-align:center;line-height:8pt;margin:0 0.5pt">${n}</span>`
-        :`<span style="display:inline-block;width:10pt;height:10pt;border-radius:50%;background:#222;color:#fff;font-size:5pt;font-weight:700;text-align:center;line-height:10pt;margin:0 0.5pt">${n}</span>`;
+        :`<span style="display:inline-block;width:10pt;height:10pt;border-radius:50%;background:#111;color:#fff;font-size:5pt;font-weight:700;text-align:center;line-height:10pt;margin:0 0.5pt">${n}</span>`;
     }).join('');
   }
 
@@ -1062,7 +1631,7 @@ function printSheet(){
       return`<tr><td>${p.num}</td><td class="nc">${p.name||''}</td><td>${st.pts||0}</td><td style="${fc}">${st.fouls||''}</td></tr>`;
     }).join(''):`<tr><td colspan="4" style="text-align:center;color:#999;font-size:5.5pt">なし</td></tr>`;
     const tfRows=[1,2,3,4].map(q=>`
-      <div class="ps-tf-row"><span class="ps-tf-q">Q${q}</span>${makeDots(getQFouls(team,q))}</div>`).join('');
+      <div class="ps-tf-row"><span class="ps-tf-q">Q${q}</span>${makeDots(getQFouls(team,q),q)}</div>`).join('');
     return`<div class="ps-tsec">
       <div class="ps-thdr ${color}">${G.teamNames[team]}　${G.scores[team]}点</div>
       <table class="ps-ptbl"><thead><tr><th>#</th><th>名前</th><th>点</th><th>F</th></tr></thead><tbody>${rows}</tbody></table>
