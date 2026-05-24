@@ -204,6 +204,15 @@ input{font-family:inherit}
 .em-del{flex:1;padding:13px;background:#fff;border:2px solid #e74c3c;border-radius:12px;color:#e74c3c;font-weight:700;font-size:13px}
 .em-cancel{flex:1;padding:13px;background:#f0f0f0;border-radius:12px;color:#888;font-weight:700;font-size:13px}
 
+/* Qセレクター */
+.q-sel-row{display:flex;gap:5px;margin:6px 0}
+.qsbtn{flex:1;padding:9px 0;border-radius:8px;font-size:14px;font-weight:700;
+  background:#f0f0f0;color:#888;border:2px solid #ddd;transition:all .15s}
+.qsbtn.on{background:#e8a020;color:#fff;border-color:#e8a020}
+.qsbtn.has-data{border-color:#ccc;color:#555;background:#fff}
+#q-recording-label{font-size:11px;color:#e8a020;font-weight:700;text-align:center;
+  padding:4px 0;letter-spacing:1px;min-height:20px}
+
 /* 印刷 */
 @media print{
   body{background:#fff;max-width:none;font-family:'Hiragino Kaku Gothic ProN','MS Gothic',sans-serif}
@@ -306,10 +315,12 @@ input{font-family:inherit}
       <button id="ubtn" disabled onclick="undo()">↩ 直前を取消</button>
       <button id="pdf-btn" onclick="printSheet()">📄 PDF</button>
     </div>
-    <div id="q-row">
-      <div id="q-lbl">Q1</div>
-      <button id="q-end-btn" onclick="endQuarter()">このQを終了</button>
-      <div id="q-disp"></div>
+    <div id="q-recording-label">Q1 に記録中</div>
+    <div class="q-sel-row">
+      <button class="qsbtn on" id="qsbtn1" onclick="selectQ(1)">Q1</button>
+      <button class="qsbtn" id="qsbtn2" onclick="selectQ(2)">Q2</button>
+      <button class="qsbtn" id="qsbtn3" onclick="selectQ(3)">Q3</button>
+      <button class="qsbtn" id="qsbtn4" onclick="selectQ(4)">Q4</button>
     </div>
     <div id="player-stats">
       <div class="ptwrap">
@@ -504,17 +515,21 @@ function refreshAllUI(){
 function renderScoreLog(){
   const area=document.getElementById('score-log-area');
   const list=document.getElementById('score-log-list');
-  if(!G.history.length){area.style.display='none';return;}
+  // 現在選択中のQのみ表示
+  const qEntries=G.history.filter(a=>a.period===G.period);
   area.style.display='block';
-  list.innerHTML=G.history.slice(0,8).map((a,i)=>{
+  if(!qEntries.length){
+    list.innerHTML='<div style="color:#ccc;font-size:12px;padding:10px 0;text-align:center">Q'+G.period+' の記録はまだありません</div>';
+    return;
+  }
+  list.innerHTML=qEntries.map((a,i)=>{
     const isScore=a.type==='score';
     const bl=a.team==='白'?'#bbb':'#222';
     const txt=isScore?'+'+a.pts+'点':'ファウル';
-    return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:4px;background:#fff;border-radius:8px;border:1px solid #eee;border-left:4px solid ${bl};cursor:pointer${i===0?';box-shadow:0 1px 4px rgba(0,0,0,.08)':''}" onclick="openEditModal('${a.id}')">
+    return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:4px;background:#fff;border-radius:8px;border:1px solid #eee;border-left:4px solid ${bl};cursor:pointer" onclick="openEditModal('${a.id}')">
       <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid #aaa;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;background:${a.team==='白'?'#fff':'#111'};color:${a.team==='白'?'#000':'#fff'};flex-shrink:0">${a.team}</div>
       <div style="font-family:monospace;font-weight:700;font-size:13px;min-width:32px">#${a.num||'?'}</div>
       <div style="font-size:12px;color:${isScore?'#333':'#e74c3c'};flex:1">${txt}</div>
-      <div style="font-size:10px;color:#bbb">Q${a.period||'?'}</div>
       <div style="font-size:11px;color:#1a5fb4;font-weight:700;padding:3px 8px;background:#f0f5ff;border-radius:4px">修正</div>
     </div>`;
   }).join('');
@@ -585,6 +600,7 @@ function openGameView(){
   document.getElementById('end-btn').textContent=G.completed?'再開':'試合終了';
   document.getElementById('end-btn').style.background=G.completed?'#e8a020':'#27ae60';
   showTab('score');autoScroll();
+  selectQ(G.period||1);
 }
 
 // ══ グリッド ══
@@ -629,9 +645,16 @@ function renderScores(){
   const d=G.scores['白']-G.scores['黒'];
   document.getElementById('difflbl').textContent=d===0?'':(d>0?'白':'黒')+'+'+Math.abs(d);
   document.getElementById('qinfo').textContent='Q'+G.period;
-  document.getElementById('q-lbl').textContent='Q'+G.period;
-  const qs=G.quarterScores;
-  document.getElementById('q-disp').textContent=qs.length?qs.map(q=>`Q${q.period}:${q.W}-${q.B}`).join(' '):'';
+  // Qボタンのデータ有無を更新
+  [1,2,3,4].forEach(i=>{
+    const btn=document.getElementById('qsbtn'+i);
+    if(!btn)return;
+    const hasData=G.history.some(a=>a.period===i);
+    if(i!==G.period)btn.className='qsbtn'+(hasData?' has-data':'');
+    else btn.className='qsbtn on';
+  });
+  const lbl=document.getElementById('q-recording-label');
+  if(lbl)lbl.textContent='Q'+G.period+' に記録中';
 }
 function updateTeamName(team,val){
   const t=team==='白'?'W':'B';
@@ -660,14 +683,29 @@ function renderTable(team){
 }
 
 
-// ══ Qごとのスタッツ ══
+// ══ Q選択 ══
+function selectQ(q){
+  G.period=q;
+  // ボタン状態更新
+  [1,2,3,4].forEach(i=>{
+    const btn=document.getElementById('qsbtn'+i);
+    if(!btn)return;
+    const hasData=G.history.some(a=>a.period===i);
+    btn.className='qsbtn'+(i===q?' on':hasData?' has-data':'');
+  });
+  document.getElementById('qinfo').textContent='Q'+q;
+  const lbl=document.getElementById('q-recording-label');
+  if(lbl)lbl.textContent='Q'+q+' に記録中';
+  renderScoreLog();
+  renderQuarterStats();
+  saveGame();
+}
+
+// ══ Qごとのスタッツ（historyから直接計算）══
 function getQPts(team,q){
-  const t=team==='白'?'W':'B';
-  const curr=G.quarterScores.find(x=>x.period===q);
-  const prev=G.quarterScores.find(x=>x.period===q-1);
-  if(curr)return curr[t]-(prev?prev[t]:0);
-  if(q===G.period){const p=G.quarterScores.find(x=>x.period===q-1);return G.scores[team]-(p?p[t]:0);}
-  return null;
+  return G.history
+    .filter(a=>a.type==='score'&&a.team===team&&a.period===q)
+    .reduce((s,a)=>s+a.pts,0)||0;
 }
 function getQFouls(team,q){
   return G.history.filter(a=>a.type==='foul'&&a.team===team&&a.period===q).length;
@@ -1018,9 +1056,7 @@ function printSheet(){
     const cells=[1,2,3,4].map(q=>{
       const p=getQPts(team,q);
       const f=getQFouls(team,q);
-      const isActive=q===G.period&&!G.quarterScores.find(x=>x.period===q);
-      const ptsStyle=isActive?'color:#e8a020;font-weight:700':p>0?'font-weight:700':'color:#ccc';
-      return`<td><div style="${ptsStyle}">${p!==null?p:'—'}</div><div style="font-size:6.5pt;color:#999">F:${f||0}</div></td>`;
+      return`<td><div style="${p>0?'font-weight:700':'color:#ccc'}">${p||'—'}</div><div style="font-size:6.5pt;color:#999">${f?'F:'+f:''}</div></td>`;
     }).join('');
     return`<tr><th>${G.teamNames[team]}</th>${cells}<td><b>${G.scores[team]}</b></td></tr>`;
   }).join('');
