@@ -327,6 +327,15 @@ input{font-family:inherit}
       <div style="font-size:10px;color:#999;font-weight:700;letter-spacing:2px;margin-bottom:6px">最近の記録　<span style="font-weight:400;color:#bbb">（タップして修正）</span></div>
       <div id="score-log-list"></div>
     </div>
+
+    <!-- Qごとのスタッツ -->
+    <div id="q-stats-section" style="padding:0 10px 16px;display:none">
+      <div style="font-size:10px;color:#999;font-weight:700;letter-spacing:2px;margin-bottom:8px">Q ごとのスタッツ</div>
+      <div style="overflow-x:auto">
+        <table id="q-stats-table" style="width:100%;border-collapse:collapse;font-size:12px;border-radius:8px;overflow:hidden;border:1px solid #eee;background:#fff">
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- 選手登録タブ -->
@@ -489,7 +498,7 @@ function rebuildFromHistory(){
 
 function refreshAllUI(){
   refreshGrid();renderScores();renderTable('白');renderTable('黒');
-  renderHistory();renderScoreLog();renderUndo();saveGame();
+  renderHistory();renderScoreLog();renderQuarterStats();renderUndo();saveGame();
 }
 
 function renderScoreLog(){
@@ -567,7 +576,7 @@ function openGameView(){
   buildGrid();refreshGrid();renderScores();
   renderTable('白');renderTable('黒');
   renderRoster('白');renderRoster('黒');
-  renderHistory();renderScoreLog();renderUndo();updateApiStatus();
+  renderHistory();renderScoreLog();renderQuarterStats();renderUndo();updateApiStatus();
   document.getElementById('name-W').value=G.teamNames['白']==='白チーム'?'':G.teamNames['白'];
   document.getElementById('name-B').value=G.teamNames['黒']==='黒チーム'?'':G.teamNames['黒'];
   document.getElementById('game-title').value=G.gameTitle||'';
@@ -648,6 +657,73 @@ function renderTable(team){
     const fc=(p.fouls||0)>=5?'fr':(p.fouls||0)>=3?'fy':'';
     return`<tr class="ptr"><td>${p.num}</td><td>${p.pts||0}</td><td class="${fc}">${p.fouls||''}</td></tr>`;
   }).join('');
+}
+
+
+// ══ Qごとのスタッツ ══
+function getQPts(team,q){
+  const t=team==='白'?'W':'B';
+  const curr=G.quarterScores.find(x=>x.period===q);
+  const prev=G.quarterScores.find(x=>x.period===q-1);
+  if(curr)return curr[t]-(prev?prev[t]:0);
+  if(q===G.period){const p=G.quarterScores.find(x=>x.period===q-1);return G.scores[team]-(p?p[t]:0);}
+  return null;
+}
+function getQFouls(team,q){
+  return G.history.filter(a=>a.type==='foul'&&a.team===team&&a.period===q).length;
+}
+
+// チームファウルを赤黒交互のドットで表現
+function foulDots(count){
+  if(!count)return '<span style="color:#ddd;font-size:10px">—</span>';
+  let html='';
+  for(let i=1;i<=count;i++){
+    if(i%2===1){
+      // 奇数：赤丸
+      html+=`<span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #e74c3c;color:#e74c3c;font-size:9px;font-weight:700;text-align:center;line-height:13px;margin:0 1px">${i}</span>`;
+    }else{
+      // 偶数：黒線（前の数字に線）
+      html+=`<span style="display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #222;background:#222;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:13px;margin:0 1px;text-decoration:line-through">${i}</span>`;
+    }
+  }
+  return html;
+}
+// PDF用テキスト版
+function foulDotsText(count){
+  if(!count)return '—';
+  return Array.from({length:count},(_,i)=>i+1).join(' ');
+}
+
+function renderQuarterStats(){
+  const sec=document.getElementById('q-stats-section');
+  const tbl=document.getElementById('q-stats-table');
+  if(!G.history.length&&!G.quarterScores.length){sec.style.display='none';return;}
+  sec.style.display='block';
+  const qs=[1,2,3,4];
+  const th=qs.map(q=>`<th style="padding:6px 8px;background:#1a1a1a;color:#fff;font-size:11px;font-weight:700;text-align:center">Q${q}</th>`).join('');
+  const rows=['白','黒'].map(team=>{
+    const ptsRow=qs.map(q=>{
+      const p=getQPts(team,q);
+      const isActive=q===G.period&&!G.quarterScores.find(x=>x.period===q);
+      return`<td style="padding:5px 8px;text-align:center;font-family:monospace;font-size:13px;border-bottom:1px solid #f0f0f0;${isActive?'color:#e8a020;font-weight:700':''}">${p!==null?p:'—'}</td>`;
+    }).join('');
+    const foulRow=qs.map(q=>{
+      const f=getQFouls(team,q);
+      return`<td style="padding:4px 6px;text-align:center;border-bottom:1px solid #f0f0f0">${foulDots(f)}</td>`;
+    }).join('');
+    const bg=team==='白'?'#fff':'#111';
+    const fg=team==='白'?'#000':'#fff';
+    return`
+      <tr>
+        <td style="padding:5px 10px;font-size:12px;font-weight:700;background:${bg};color:${fg};border-right:1px solid #eee;white-space:nowrap">${team} 点</td>
+        ${ptsRow}
+      </tr>
+      <tr>
+        <td style="padding:4px 10px;font-size:11px;font-weight:700;background:${bg};color:${fg};border-right:1px solid #eee;white-space:nowrap;border-bottom:2px solid #ccc">チームF</td>
+        ${foulRow}
+      </tr>`;
+  }).join('');
+  tbl.innerHTML=`<thead><tr><th style="padding:6px 10px;background:#1a1a1a;color:#aaa;font-size:10px;font-weight:400;text-align:left">チーム</th>${th}</tr></thead><tbody>${rows}</tbody>`;
 }
 
 // ══ 履歴表示 ══
@@ -920,15 +996,31 @@ function printSheet(){
       const k=team+'-'+p.num;const st=G.stats[k]||{pts:0,fouls:0};
       return`<tr><td>${p.num}</td><td class="nc">${p.name||''}</td><td>${st.pts||0}</td><td style="${st.fouls>=5?'color:#e74c3c':st.fouls>=3?'color:#e8a020':''}">${st.fouls||''}</td></tr>`;
     }).join(''):`<tr><td colspan="4" style="text-align:center;color:#999">なし</td></tr>`;
+    // Qごとのチームファウル表（赤黒交互表記）
+    const foulQRows=[1,2,3,4].map(q=>{
+      const f=getQFouls(team,q);
+      // 赤=奇数 黒塗り=偶数
+      const dots=f>0?Array.from({length:f},(_,i)=>{
+        const n=i+1;
+        return n%2===1
+          ?`<span style="display:inline-block;width:12pt;height:12pt;border-radius:50%;border:1.5pt solid #e74c3c;color:#e74c3c;font-size:6pt;font-weight:700;text-align:center;line-height:10pt;margin:0 1pt">${n}</span>`
+          :`<span style="display:inline-block;width:12pt;height:12pt;border-radius:50%;background:#222;color:#fff;font-size:6pt;font-weight:700;text-align:center;line-height:12pt;margin:0 1pt;text-decoration:line-through">${n}</span>`;
+      }).join(''):`<span style="color:#ccc;font-size:7pt">—</span>`;
+      return`<tr><td style="font-size:7pt;color:#888;border:1px solid #ddd;padding:1mm 1mm;text-align:center;width:8mm">Q${q}</td><td style="border:1px solid #ddd;padding:1mm 2mm">${dots}</td></tr>`;
+    }).join('');
     return`<div class="ps-tsec"><div class="ps-thdr ${color}">${G.teamNames[team]}　計 ${G.scores[team]}点</div>
-      <table class="ps-ptbl"><thead><tr><th>#</th><th>選手名</th><th>得点</th><th>F</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      <table class="ps-ptbl"><thead><tr><th>#</th><th>選手名</th><th>得点</th><th>F</th></tr></thead><tbody>${rows}</tbody></table>
+      <div style="padding:1mm 2mm;font-size:7.5pt;font-weight:700;background:#f5f5f5;border-top:1px solid #ccc">チームファウル</div>
+      <table style="width:100%;border-collapse:collapse;font-size:7pt">${foulQRows}</table>
+      </div>`;
   }
   const qRows=['白','黒'].map(team=>{
-    const t=team==='白'?'W':'B';
     const cells=[1,2,3,4].map(q=>{
-      const qd=G.quarterScores.find(x=>x.period===q);
-      const prev=G.quarterScores.find(x=>x.period===q-1);
-      return`<td>${qd?(qd[t]-(prev?prev[t]:0)):''}</td>`;
+      const p=getQPts(team,q);
+      const f=getQFouls(team,q);
+      const isActive=q===G.period&&!G.quarterScores.find(x=>x.period===q);
+      const ptsStyle=isActive?'color:#e8a020;font-weight:700':p>0?'font-weight:700':'color:#ccc';
+      return`<td><div style="${ptsStyle}">${p!==null?p:'—'}</div><div style="font-size:6.5pt;color:#999">F:${f||0}</div></td>`;
     }).join('');
     return`<tr><th>${G.teamNames[team]}</th>${cells}<td><b>${G.scores[team]}</b></td></tr>`;
   }).join('');
